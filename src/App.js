@@ -8,6 +8,7 @@ function App() {
     <div className="m-10">
       <NavBarPortfolio />
       <Porfolio />
+      Welcome
     </div>
   );
 }
