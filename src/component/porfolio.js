@@ -1,5 +1,5 @@
 import React from 'react';
-import { cibGithub, cibTwitter, cibLeetcode } from '@coreui/icons';
+import { cibGithub, cibLinkedinIn, cibLeetcode } from '@coreui/icons';
 import CIcon from '@coreui/icons-react';
 
 function Porfolio() {
@@ -9,32 +9,38 @@ function Porfolio() {
       <div className='flex justify-evenly items-center my-8' style={{width: '-webkit-fill-available'}}>
         {/* Image */}
         <div className='m-5'>
-        <img className='rounded-full w-[256px] h-[256px]' src='https://pbs.twimg.com/profile_images/1797955529551089664/OLixcd1Y_200x200.jpg' alt='' />
+        <img className='rounded-full w-[256px] h-[256px]' src='photomin.png' alt='' />
         </div>
         
         {/* Social media  infos */}
-        <div className='flex flex-col justify-between items-center h-[250px]'>
+        <div className='flex flex-col justify-between h-[250px]'>
           <div className='flex'>
             {/* icon */}
             <CIcon icon={cibGithub} className='w-[50px]'/>
             {/* text */}
-            <a href={'https://github.com/RKY2023'} className='flex items-center ml-2 text-lg'>
+            <a href={'https://github.com/RKY2023'} className='flex items-center ml-5 text-lg'>
               RKY2023
             </a>
           </div>
           <div className='flex'>
             {/* icon */}
-            <CIcon icon={cibTwitter} className='w-[50px]'/>
+            <CIcon icon={cibLinkedinIn} className='w-[50px]'/>
             {/* text */}
-            <a href={'https://x.com/RajKuma49762038'} className='flex items-center ml-2 text-lg'>
-              @RajKuma49762038
+            <a href={'https://x.com/RajKuma49762038'} className='flex items-center ml-5 text-lg'>
+              rajkumaryadav2023
             </a>
           </div>
+          {/* <div className='flex'>
+            <CIcon icon={cibTwitter} className='w-[50px]'/>
+            <a href={'https://x.com/RajKuma49762038'} className='flex items-center ml-5 text-lg'>
+              @RajKuma49762038
+            </a>
+          </div> */}
           <div className='flex'>
             {/* icon */}
             <CIcon icon={cibLeetcode} className='w-[50px]'/>
             {/* text */}
-            <a href={'https://leetcode.com/u/rajkumar2023/'} className='flex items-center ml-2 text-lg'>
+            <a href={'https://leetcode.com/u/rajkumar2023/'} className='flex items-center ml-5 text-lg'>
               rajkumar2023
               {/* https://leetcode.com/u/rajkumar2023/ */}
             </a>
@@ -44,7 +50,7 @@ function Porfolio() {
         
       </div>
       <div className='text-3xl font-bold underline'>
-        Summary 
+        {/* Summary  */}
         {/* Add Domain KNowledge */}
       </div>
     </div>
