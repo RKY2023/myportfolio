@@ -7,7 +7,7 @@ const FULLSTACK_PROJECTS = [
   {
     id: 0,
     name: 'Group Chat App',
-    url: 'http://13.53.45.119/',
+    url: 'http://16.170.14.225/',
   },
   {
     id: 1,
@@ -40,7 +40,7 @@ const WEB_PROJECTS = [
   {
     id: 4,
     name: 'Meetups',
-    url: 'meetups1-seven.vercel.app',
+    url: 'https://meetups1-seven.vercel.app',
   }
 ]
 
@@ -52,13 +52,13 @@ const PY_PROJECTS = [
   },
   {
     id: 1,
-    name: 'Manga Downloader',
-    url: 'https://expensetracker-7505d.web.app/',
+    name: 'Manga Downloader (private repo)',
+    url: '',
   },
   {
     id: 2,
-    name: 'Bank Account statement Pdf to CSV',
-    url: 'https://mailboxx-72dc0.web.app/',
+    name: 'Bank Account statement Pdf to CSV (private repo)',
+    url: '',
   }
 ]
 

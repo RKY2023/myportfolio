@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 // import './index.css';
 import './input.css';
 import App from './App';
-// import Projects from './component/projects';
+import Projects from './component/projects';
 import Blogs from './component/blogs';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 // import reportWebVitals from './reportWebVitals';
@@ -16,7 +16,7 @@ root.render(
       <Route path='/' element={<App />}/>
         {/* <Redirect to='/main' /> */}
       {/* </Route> */}
-      {/* <Route path="/projects" exact element={<Projects />} /> */}
+      <Route path="/projects" exact element={<Projects />} />
       <Route path="/blogs" exact element={<Blogs />} />
     </Routes>
   </BrowserRouter>
