@@ -50,16 +50,16 @@ const PY_PROJECTS = [
     name: 'Auto Anime Downloader',
     url: 'https://github.com/RKY2023/AutoAnimeDownload',
   },
-  {
-    id: 1,
-    name: 'Manga Downloader (private repo)',
-    url: '',
-  },
-  {
-    id: 2,
-    name: 'Bank Account statement Pdf to CSV (private repo)',
-    url: '',
-  }
+  // {
+  //   id: 1,
+  //   name: 'Manga Downloader (private repo)',
+  //   url: '',
+  // },
+  // {
+  //   id: 2,
+  //   name: 'Bank Account statement Pdf to CSV (private repo)',
+  //   url: '',
+  // }
 ]
 
 function Projects() {
@@ -105,14 +105,14 @@ function Projects() {
 <>
 
 <div className={`flex flex-col p-10`}>
-  <div className="col">
+  {/* <div className="col">
     <h1 className='m-2 text-center'>
         Fullstack Projects
     </h1>
     <Accordion defaultActiveKey="0">
       {content3}
     </Accordion>
-  </div>
+  </div> */}
   <div className="col">
     <h1 className='m-2 text-center'>
         React Projects

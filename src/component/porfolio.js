@@ -1,5 +1,5 @@
 import React from 'react';
-import { cibGithub, cibLinkedinIn, cibTwitter, cibLeetcode } from '@coreui/icons';
+import { cibGithub, cibLinkedinIn, cibTwitter, cibLeetcode, cibHackerrank } from '@coreui/icons';
 import CIcon from '@coreui/icons-react';
 
 function Porfolio() {
@@ -44,6 +44,13 @@ function Porfolio() {
               {/* https://leetcode.com/u/rajkumar2023/ */}
             </a>
           </div>
+          <div className='flex'>
+            <CIcon icon={cibHackerrank} className='w-[50px]'/>
+            <a href={'https://www.hackerrank.com/profile/xraj2023'} className='flex items-center ml-5 text-lg'>
+              xraj2023
+            </a>
+          </div>
+          {/* https://steamcommunity.com/id/solorky/ */}
         </div>
         
         
