@@ -1,6 +1,6 @@
 import { useEffect } from "react";
-import Accordion from 'react-bootstrap/Accordion';
 import { Link } from 'react-router-dom'
+import Accordion from "../component/UI/Accordion/Accordion";
 
 
 const FULLSTACK_PROJECTS = [
@@ -64,37 +64,15 @@ const PY_PROJECTS = [
 
 function Projects() {
   
-  const content = WEB_PROJECTS.map(proj => {
-    return (
-    <Accordion.Item eventKey={proj.id} key={proj.id}>
-      <Accordion.Header>{proj.name}</Accordion.Header>
-      <Accordion.Body>
-        <Link to={proj.url}>{proj.url}</Link>
-      </Accordion.Body>
-    </Accordion.Item>
-    );
-  })
-  const content2 = PY_PROJECTS.map(proj => {
-    return (
-    <Accordion.Item eventKey={proj.id} key={proj.id}>
-      <Accordion.Header>{proj.name}</Accordion.Header>
-      <Accordion.Body>
-        <Link to={proj.url}>{proj.url}</Link>
-      </Accordion.Body>
-    </Accordion.Item>
-    );
-  })
-  const content3 = FULLSTACK_PROJECTS.map(proj => {
-    return (
-    <Accordion.Item eventKey={proj.id} key={proj.id}>
-      <Accordion.Header>{proj.name}</Accordion.Header>
-      <Accordion.Body>
-        <Link to={proj.url}>{proj.url}</Link>
-      </Accordion.Body>
-    </Accordion.Item>
-    );
-  })
-
+  const projectContent = (projectList) => {
+    return projectList.map(proj => {
+      const body = <Link to={proj.url}>{proj.url}</Link>
+      return (
+        <Accordion head={proj.name} body={body}/>
+      );
+    })
+  }
+  
   useEffect(() => {
     const bodyElement = document.getElementsByTagName('body')[0];
     bodyElement.setAttribute('data-bs-theme','dark');
@@ -105,29 +83,22 @@ function Projects() {
 <>
 
 <div className={`flex flex-col p-10`}>
-  {/* <div className="col">
-    <h1 className='m-2 text-center'>
-        Fullstack Projects
-    </h1>
-    <Accordion defaultActiveKey="0">
-      {content3}
-    </Accordion>
-  </div> */}
+  
   <div className="col">
     <h1 className='m-2 text-center'>
         React Projects
     </h1>
-    <Accordion defaultActiveKey="0">
-      {content}
-    </Accordion>
+    <div>
+      {projectContent(WEB_PROJECTS)}
+    </div>
   </div>
   <div className="col">
     <h1 className='m-2 text-center'>
         Python Projects
     </h1>
-    <Accordion defaultActiveKey="0">
-      {content2}
-    </Accordion>
+    <div>
+      {projectContent(PY_PROJECTS)}
+    </div>
   </div>
 </div>
 </>
