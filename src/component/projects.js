@@ -21,6 +21,7 @@ const WEB_PROJECTS = [
     id: 0,
     name: 'Ashboard',
     url: 'https://ashboard-ruby.vercel.app/',
+    desc: '',
   },
   {
     id: 1,
