@@ -1,7 +1,6 @@
 import React from 'react';
 import { cibGithub, cibLinkedinIn, cibTwitter, cibLeetcode, cibHackerrank } from '@coreui/icons';
 import CIcon from '@coreui/icons-react';
-import Experiences from './experience';
 
 function Porfolio() {
   return (
@@ -58,10 +57,10 @@ function Porfolio() {
       </div>
       <div className='text-3xl font-bold underline'>
         {/* Summary  */}
+        
         {/* Add Domain KNowledge */}
-        <Experiences />
       </div>
-      
+           
     </div>
   )
 }
