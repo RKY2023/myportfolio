@@ -41,7 +41,7 @@ const WEB_PROJECTS = [
   {
     id: 4,
     name: 'Meetups',
-    url: 'https://meetups1-seven.vercel.app',
+    url: 'https://meetups.rajkumaryd.in/',
   }
 ]
 
