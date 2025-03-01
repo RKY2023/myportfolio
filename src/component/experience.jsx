@@ -5,7 +5,11 @@ function Experiences() {
   return (
     <div className={classes['experience']}>
       <h1 className='text-xl text-black-walnut'>Experiences</h1>
-      <img className={classes['logo']} src={'https://img.10times.com/images/bootlogo_1.png?imgeng=/w_90/h_30/m_stretch/cmpr_60'}/>
+      <img 
+        className={classes['logo']} 
+        src={'https://img.10times.com/images/bootlogo_1.png?imgeng=/w_90/h_30/m_stretch/cmpr_60'} 
+        alt='Company Logo'
+      />
       <div>
         Software Developer I 
         <br></br>

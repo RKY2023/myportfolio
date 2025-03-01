@@ -7,7 +7,7 @@ const FULLSTACK_PROJECTS = [
   {
     id: 0,
     name: 'Group Chat App',
-    url: 'http://16.170.14.225/',
+    url: 'https://group-chat-app-sigma.vercel.app/',
   },
   {
     id: 1,
@@ -84,7 +84,14 @@ function Projects() {
 <>
 
 <div className={`flex flex-col p-10`}>
-  
+<div className="col">
+    <h1 className='m-2 text-center'>
+        Fullstack Projects
+    </h1>
+    <div>
+      {projectContent(FULLSTACK_PROJECTS)}
+    </div>
+  </div>
   <div className="col">
     <h1 className='m-2 text-center'>
         React Projects

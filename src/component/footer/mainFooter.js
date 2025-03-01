@@ -9,11 +9,11 @@ function MainFooter() {
     <section>
       <ul>
         <li>
-          <a href="">
+          <button onClick={() => { /* handle click */ }}>
             {/* icon */}
             {/* <RoundedBtn icon={<TbCircleDashed />} /> */}
             <RoundedBtn icon={<HiUserCircle />} />
-          </a>      
+          </button>      
         </li>
       </ul>
       
