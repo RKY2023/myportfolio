@@ -1,15 +1,15 @@
 import { InlineCode } from "@/once-ui/components";
 
 const person = {
-  firstName: "Selene",
-  lastName: "Yu",
+  firstName: "Raj kumar",
+  lastName: "Yadav",
   get name() {
     return `${this.firstName} ${this.lastName}`;
   },
-  role: "Design Engineer",
-  avatar: "/images/avatar.jpg",
-  location: "Asia/Jakarta", // Expecting the IANA time zone identifier, e.g., 'Europe/Vienna'
-  languages: ["English", "Bahasa"], // optional: Leave the array empty if you don't want to display languages
+  role: "Full Stack Developer",
+  avatar: "/images/avatar.png",
+  location: "Asia/Calcutta",
+  languages: ["English", "Hindi"],
 };
 
 const newsletter = {
@@ -24,22 +24,20 @@ const newsletter = {
 };
 
 const social = [
-  // Links are automatically displayed.
-  // Import new icons in /once-ui/icons.ts
   {
     name: "GitHub",
     icon: "github",
-    link: "https://github.com/once-ui-system/nextjs-starter",
+    link: "https://github.com/RKY2023",
   },
   {
     name: "LinkedIn",
     icon: "linkedin",
-    link: "https://www.linkedin.com/company/once-ui/",
+    link: "https://www.linkedin.com/in/rajkumaryadav2023",
   },
   {
     name: "X",
     icon: "x",
-    link: "",
+    link: "https://x.com/rajkumaryd2023",
   },
   {
     name: "Email",
@@ -52,11 +50,11 @@ const home = {
   label: "Home",
   title: `${person.name}'s Portfolio`,
   description: `Portfolio website showcasing my work as a ${person.role}`,
-  headline: <>Design engineer and builder</>,
+  headline: <>Full stack Developer</>,
   subline: (
     <>
-      I'm Selene, a design engineer at <InlineCode>FLY</InlineCode>, where I craft intuitive
-      <br /> user experiences. After hours, I build my own projects.
+      I'm Raj, a full stack developer, where I craft intuitive
+      <br /> user experiences.
     </>
   ),
 };
@@ -91,34 +89,33 @@ const about = {
     display: true, // set to false to hide this section
     title: "Work Experience",
     experiences: [
+      // {
+      //   company: "FLY",
+      //   timeframe: "2022 - Present",
+      //   role: "Senior Design Engineer",
+      //   achievements: [
+      //     <>
+      //       Redesigned the UI/UX for the FLY platform, resulting in a 20% increase in user
+      //       engagement and 30% faster load times.
+      //     </>,
+      //     <>
+      //       Spearheaded the integration of AI tools into design workflows, enabling designers to
+      //       iterate 50% faster.
+      //     </>,
+      //   ],
+      //   images: [
+      //     {
+      //       src: "/images/projects/project-01/cover-01.jpg",
+      //       alt: "Once UI Project",
+      //       width: 16,
+      //       height: 9,
+      //     },
+      //   ],
+      // },
       {
-        company: "FLY",
-        timeframe: "2022 - Present",
-        role: "Senior Design Engineer",
-        achievements: [
-          <>
-            Redesigned the UI/UX for the FLY platform, resulting in a 20% increase in user
-            engagement and 30% faster load times.
-          </>,
-          <>
-            Spearheaded the integration of AI tools into design workflows, enabling designers to
-            iterate 50% faster.
-          </>,
-        ],
-        images: [
-          // optional: leave the array empty if you don't want to display images
-          {
-            src: "/images/projects/project-01/cover-01.jpg",
-            alt: "Once UI Project",
-            width: 16,
-            height: 9,
-          },
-        ],
-      },
-      {
-        company: "Creativ3",
-        timeframe: "2018 - 2022",
-        role: "Lead Designer",
+        company: "10times",
+        timeframe: "2019 - 2022",
+        role: "Software Developer",
         achievements: [
           <>
             Developed a design system that unified the brand across multiple platforms, improving
@@ -138,12 +135,12 @@ const about = {
     title: "Studies",
     institutions: [
       {
-        name: "University of Jakarta",
-        description: <>Studied software engineering.</>,
+        name: "Sharda University",
+        description: <>B Tech (CSE).</>,
       },
       {
-        name: "Build the Future",
-        description: <>Studied online marketing and personal branding.</>,
+        name: "TATA DAV SCHOOL",
+        description: <>Completed 12th grade.</>,
       },
     ],
   },
@@ -154,7 +151,6 @@ const about = {
       {
         title: "Figma",
         description: <>Able to prototype in Figma with Once UI with unnatural speed.</>,
-        // optional: leave the array empty if you don't want to display images
         images: [
           {
             src: "/images/projects/project-01/cover-02.jpg",
