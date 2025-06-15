@@ -3,6 +3,7 @@ import { Column } from "@/once-ui/components";
 import { Projects } from "@/components/work/Projects";
 import { baseURL } from "@/app/resources";
 import { person, work } from "@/app/resources/content";
+import Projects2 from "@/components/work/Projects2";
 
 export async function generateMetadata() {
   const title = work.title;
@@ -63,9 +64,8 @@ export default function Work() {
           }),
         }}
       />
-
-      hello
-      <Projects />
+      <Projects2 />
+      {/* <Projects /> */}
     </Column>
   );
 }

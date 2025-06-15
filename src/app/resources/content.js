@@ -22,7 +22,38 @@ const newsletter = {
     </>
   ),
 };
-
+// const socialLinks = [
+//   {
+//     icon: cibGithub,
+//     href: 'https://github.com/RKY2023',
+//     name: 'RKY2023',
+//   },
+//   {
+//     icon: cibLinkedinIn,
+//     href: 'https://www.linkedin.com/in/rajkumaryadav2023',
+//     name: 'rajkumaryadav2023',
+//   },
+//   {
+//     icon: cibTwitter,
+//     href: 'https://x.com/rajkumaryd2023',
+//     name: 'rajkumaryd2023',
+//   },
+//   {
+//     icon: cibLeetcode,
+//     href: 'https://leetcode.com/u/rajkumar2023/',
+//     name: 'rajkumar2023',
+//   },
+//   {
+//     icon: cibHackerrank,
+//     href: 'https://www.hackerrank.com/profile/xraj2023',
+//     name: 'xraj2023',
+//   },
+//   {
+//     icon: cibSteam,
+//     href: 'https://steamcommunity.com/id/solorky/',
+//     name: 'xraj2023',
+//   },
+// ];
 const social = [
   {
     name: "GitHub",
