@@ -1,4 +1,4 @@
-const baseURL = "demo.magic-portfolio.com";
+const baseURL = "www.rajkumaryd.in/";
 
 const routes = {
   "/": true,
@@ -6,6 +6,7 @@ const routes = {
   "/work": true,
   "/blog": true,
   "/gallery": true,
+  "/contact": true,
 };
 
 // Enable password protection on selected routes

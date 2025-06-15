@@ -55,6 +55,7 @@ const home = {
     <>
       I'm Raj, a full stack developer, where I craft intuitive
       <br /> user experiences.
+      {/* Hey, I'm Raj. I'm looking for a SDE role for modern web development profile. Which company likely to work on new technology like React, tailwind, NextJS etc. */}
     </>
   ),
 };
@@ -278,4 +279,12 @@ const gallery = {
   ],
 };
 
-export { person, social, newsletter, home, about, blog, work, gallery };
+const contact = {
+  label: "Contact",
+  title: "Contact me",
+  description: `Here is you can mailto ${person.name}`,
+  // Create new project pages by adding a new .mdx file to app/blog/posts
+  // All projects will be listed on the /home and /work routes
+};
+
+export { person, social, newsletter, home, about, blog, work, gallery,contact };
