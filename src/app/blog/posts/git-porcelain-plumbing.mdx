@@ -1,0 +1,384 @@
+---
+title: "Porcelain vs Plumbing in Git"
+publishedAt: "2025-05-24"
+summary: "Knowing the key concepts of for GODS features of code bases. Later AI integrtion on it."
+tag: "Technology"
+---
+
+🪞 Porcelain vs 🧰 Plumbing in Git
+Category	Porcelain Commands	Plumbing Commands
+Level	High-level (user-friendly)	Low-level (internal, script-friendly)
+Audience	End users	Tools, scripts, Git internals
+Output	Readable, formatted	Raw, structured (for parsing)
+Stability	Stable, meant for users	May change, not always user-friendly
+
+🪞 Git Porcelain Commands (high-level user tools)
+These are what you typically use on a daily basis:
+
+git init
+
+git clone
+
+git add
+
+git commit
+
+git status
+
+git push
+
+git pull
+
+git checkout
+
+git branch
+
+git merge
+
+git log
+
+git diff
+
+git reset
+
+git stash
+
+🧰 Git Plumbing Commands (low-level tools)
+These are used by Git internally or in scripts for fine-grained control:
+
+git hash-object
+
+git cat-file
+
+git rev-parse
+
+git update-index
+
+git write-tree
+
+git read-tree
+
+git commit-tree
+
+git unpack-objects
+
+git ls-tree
+
+git for-each-ref
+
+git show-ref
+
+git update-ref
+
+git check-ref-format
+
+🧠 Tip to Remember
+Porcelain = Pretty (what users interact with)
+
+Plumbing = Pipes (what Git is built on)
+
+
+
+
+🧠 Tip to Remember
+Porcelain = Pretty (what users interact with)
+
+Plumbing = Pipes (what Git is built on)
+
+Let me know if you want to see examples of how plumbing commands work under the hood (like building a commit manually).
+
+
+
+
+
+
+
+You said:
+list me all porcelain commands
+
+
+ChatGPT said:
+Here’s a comprehensive list of Git porcelain commands — these are the high-level, user-facing commands meant for daily use. They're designed to be human-friendly and stable.
+
+🪞 Git Porcelain Commands (User Commands)
+📁 Repository Setup & Configuration
+git init — Create a new Git repository
+
+git clone — Clone an existing repository
+
+git config — Configure user settings
+
+🔄 Working with Changes
+git status — Show the working directory and staging area status
+
+git add — Add files to the staging area
+
+git restore — Restore files in the working directory
+
+git rm — Remove files from working directory and staging area
+
+git mv — Move or rename a file
+
+🧱 Committing Changes
+git commit — Record changes to the repository
+
+git reset — Undo commits or reset the staging area
+
+git revert — Create a new commit that undoes previous changes
+
+🌿 Branching and Merging
+git branch — List, create, or delete branches
+
+git checkout — Switch branches or restore files (older usage)
+
+git switch — Modern way to switch branches
+
+git merge — Join two or more development histories
+
+git rebase — Reapply commits on top of another base tip
+
+📤 Sharing and Updating
+git fetch — Download objects and refs from another repo
+
+git pull — Fetch and integrate changes
+
+git push — Upload local changes to a remote repo
+
+git remote — Manage remote repositories
+
+🔍 Inspecting History and Changes
+git log — Show commit logs
+
+git show — Show various types of objects (e.g., commits)
+
+git diff — Show changes between commits, working directory, etc.
+
+🧰 Temporary Changes
+git stash — Save and restore uncommitted changes
+
+git clean — Remove untracked files from the working directory
+
+🧠 Notes
+These commands are user-facing and are considered stable.
+
+They often have simpler, cleaner outputs compared to plumbing commands.
+
+
+
+
+🪞 Git Porcelain Commands Table
+Category	Command	Description
+🛠️ Setup & Config	git init	Create a new Git repository
+git clone	Clone an existing repository
+git config	Configure Git settings
+🔄 Working with Changes	git status	Show status of working directory and staging area
+git add	Add file contents to the staging area
+git restore	Restore working directory files
+git rm	Remove files from working directory and index
+git mv	Move or rename a file
+🧱 Committing Changes	git commit	Record changes to the repository
+git reset	Reset current HEAD to a specified state
+git revert	Revert a previous commit by creating a new one
+🌿 Branching & Merging	git branch	Create, list, rename, or delete branches
+git checkout	Switch branches or restore files (older syntax)
+git switch	Switch branches (modern syntax)
+git merge	Join two or more development histories
+git rebase	Reapply commits on top of another base tip
+📤 Sharing & Updating	git fetch	Download objects and refs from another repository
+git pull	Fetch and integrate changes from a remote repo
+git push	Upload local changes to a remote repository
+git remote	Manage set of tracked repositories
+🔍 Inspecting History	git log	Show commit logs
+git show	Show details of a specific object (e.g., commit)
+git diff	Show changes between commits, or working tree
+🧰 Temporary Changes	git stash	Stash the current working directory state
+git clean	Remove untracked files or directories
+
+Let me know if you'd like a similar table for plumbing commands or
+
+
+
+Porcelain
+44 main commands (git help -a)
+11 manipulators
+17 interrogators
+10 interactors
+
+# 44 main commands
+| **#** | **Command**           | **Description**                                            |
+| ----: | --------------------- | ---------------------------------------------------------- |
+|     1 | `git add`             | Add file contents to the index                             |
+|     2 | `git am`              | Apply a series of patches from a mailbox                   |
+|     3 | `git archive`         | Create an archive of files from a named tree               |
+|     4 | `git bisect`          | Use binary search to find the commit that introduced a bug |
+|     5 | `git branch`          | List, create, or delete branches                           |
+|     6 | `git bundle`          | Move objects and refs by archive                           |
+|     7 | `git checkout`        | Switch branches or restore working tree files              |
+|     8 | `git cherry-pick`     | Apply the changes from a specific commit                   |
+|     9 | `git citool`          | Graphical alternative to `git commit`                      |
+|    10 | `git clean`           | Remove untracked files from the working tree               |
+|    11 | `git clone`           | Clone a repository into a new directory                    |
+|    12 | `git commit`          | Record changes to the repository                           |
+|    13 | `git describe`        | Describe a commit using the most recent tag                |
+|    14 | `git diff`            | Show changes between commits, working tree, etc.           |
+|    15 | `git fetch`           | Download objects and refs from another repository          |
+|    16 | `git format-patch`    | Prepare patches for e-mail submission                      |
+|    17 | `git gc`              | Optimize the local repository                              |
+|    18 | `git grep`            | Search for patterns in files tracked by Git                |
+|    19 | `git gui`             | Launch Git’s graphical interface                           |
+|    20 | `git init`            | Create an empty Git repository                             |
+|    21 | `git log`             | Show commit logs                                           |
+|    22 | `git merge`           | Join two or more development histories                     |
+|    23 | `git mv`              | Move or rename a file                                      |
+|    24 | `git notes`           | Add or inspect object notes                                |
+|    25 | `git pull`            | Fetch from and integrate with another repository           |
+|    26 | `git push`            | Update remote refs and objects                             |
+|    27 | `git rebase`          | Reapply commits on top of another base tip                 |
+|    28 | `git reflog`          | Show history of `HEAD` or other references                 |
+|    29 | `git remote`          | Manage set of tracked repositories                         |
+|    30 | `git reset`           | Reset current `HEAD`                                       |
+|    31 | `git restore`         | Restore working tree files                                 |
+|    32 | `git revert`          | Create a new commit to undo previous commits               |
+|    33 | `git rm`              | Remove files from the working tree and index               |
+|    34 | `git shortlog`        | Summarize `git log` output                                 |
+|    35 | `git show`            | Show various types of objects                              |
+|    36 | `git sparse-checkout` | Manage sparse-checkout of the working directory            |
+|    37 | `git stash`           | Stash the current state of the working directory           |
+|    38 | `git status`          | Show the working tree status                               |
+|    39 | `git submodule`       | Initialize, update, or inspect submodules                  |
+|    40 | `git switch`          | Switch branches                                            |
+|    41 | `git tag`             | Create, list, delete, or verify tags                       |
+|    42 | `git worktree`        | Manage multiple working trees                              |
+|    43 | `git config`          | Get and set repository or global options                   |
+|    44 | `git help`            | Get help for a git command                                 |
+
+
+# 11 manipulators
+🛠️ Git’s 11 Manipulators (Porcelain Commands)
+#	Command	Description
+1	git config
+2	git reflog
+3	git replace
+---- unknow/not sure
+4	git commit	Record changes to the repository
+5	git revert	Revert a previous commit by creating a new commit
+6	git reset	Reset current HEAD and optionally index/working directory
+7	git merge	Merge another branch into the current branch
+8	git rebase	Reapply commits on top of another base tip
+9	git cherry-pick	Apply changes introduced by existing commits
+10	git stash	Temporarily save changes that are not ready to commit
+11	git apply	Apply a patch to files and/or the index
+
+🕵️ Git's 17 Interrogators (Porcelain Commands)
+#	Command	Description
+1	git blame	Show who last modified each line of a file
+---- unknow/not sure
+2	git diff	Show changes between commits, the working directory, etc.
+3	git log	Show the commit history
+4	git show	Show information about a commit or object
+5	git reflog	Show history of changes to references like HEAD
+6	git status	Show the working tree and staging area status
+7	git shortlog	Summarize git log by author
+8	git describe	Describe a commit using the nearest tag
+9	git grep	Search through tracked files for a pattern
+10	git config	View (or set) Git configuration values
+11	git remote	View remote connections
+12	git branch	List branches (can also create/delete with flags)
+13	git tag	List tags (or create/delete with options)
+14	git rev-parse	Convert human-readable refs to SHA-1 hashes (plumbing-ish)
+15	git cat-file	View object contents (plumbing, often used in scripts)
+16	git ls-files	Show files in the index (staging area)
+17	git ls-tree	List contents of a tree object
+
+
+🤝 Git's 10 Interactors (Porcelain Commands)
+#	Command	Description
+1	git send-email	Send patches as emails (used in some workflows)
+2	git p4
+3	git svn
+---- unknow/not sure
+4	git clone	Clone a remote repository into a new local directory
+5	git remote	Manage and interact with remote repositories
+6	git submodule	Initialize, update, or sync submodules
+7	git fetch	Download commits, refs, and objects from a remote repository
+8	git request-pull	Generate a summary of changes for a pull request via email
+9	git archive	Create an archive (tar/zip) of files from the repository
+10	git bundle	Create or fetch from a self-contained bundle of Git objects
+
+
+
+🛠️ Git Plumbing Commands Categorized
+🔧 10 Manipulators
+These commands modify Git's internal objects and structures.
+
+Command	Description
+git hash-object	Compute object ID and optionally create a blob from a file
+git update-index	Register file contents in the working directory to the index
+git write-tree	Create a tree object from the current index
+git commit-tree	Create a new commit object
+git update-ref	Update the object name stored in a ref safely
+git symbolic-ref	Read, modify, and delete symbolic refs
+git mktree	Build a tree object from stdin
+git read-tree	Read tree information into the index
+git checkout-index	Copy files from the index to the working directory
+git prune	Remove unreachable objects from the object database
+
+🔍 21 Interrogators
+These commands retrieve information from the repository without modifying it.
+
+Command	Description
+git cat-file	Provide content or type and size information for repository objects
+git check-ignore	Determine whether a path is ignored by .gitignore
+git count-objects	Count unpacked objects and display repository statistics
+git diff-files	Compare files in the working directory and the index
+git diff-index	Compare content and mode of blobs between the index and a tree
+git diff-tree	Show differences between two tree objects
+git for-each-ref	Output information on each ref
+git ls-files	Show information about files in the index and the working tree
+git ls-tree	List the contents of a tree object
+git merge-base	Find common ancestors between two commits
+git name-rev	Find symbolic names for given revisions
+git rev-list	List commit objects in reverse chronological order
+git rev-parse	Parse revision (branch, tag, etc.) identifiers
+git show-ref	List references in a local repository
+git verify-pack	Validate packed Git archive files
+git show-index	Show packed archive index
+git fsck	Verify the connectivity and validity of the objects in the database
+git describe	Describe a commit using the nearest tag
+git log	Show commit logs
+git blame	Show what revision and author last modified each line of a file
+git shortlog	Summarize git log output
+
+🔄 5 Syncing Commands
+These commands handle the transfer of data between repositories.
+
+Command	Description
+git fetch-pack	Receive a packfile from a remote repository
+git send-pack	Push objects over Git protocol to another repository
+git receive-pack	Receive what is pushed into the repository
+git upload-pack	Send objects packed back to git-fetch-pack
+git pack-objects	Create a packed archive of objects
+
+⚙️ 18 Internal Helper Commands
+These are low-level commands primarily used internally by other Git commands.
+Medium
+
+Command	Description
+git unpack-objects	Unpack objects from a packed archive
+git index-pack	Build pack index file for an existing packed archive
+git unpack-file	Create a temporary file with the contents of a blob
+git apply	Apply a patch to files and/or the index
+git mailinfo	Extracts patch and authorship from a single e-mail message
+git mailsplit	Simple UNIX mbox splitter program
+git read-tree	Read tree information into the index
+git write-tree	Create a tree object from the current index
+git update-index	Register file contents in the working directory to the index
+git update-ref	Update the object name stored in a ref safely
+git symbolic-ref	Read, modify, and delete symbolic refs
+git pack-refs	Pack all refs into a single file
+git prune-packed	Remove extra objects that are already in pack files
+git rerere	Reuse recorded resolution of conflicted merges
+git check-attr	Display gitattributes information
+git check-ignore	Determine whether a path is ignored by .gitignore
+git fast-import	Backend for fast Git data importers
+git fast-export	Git data exporter for fast importers
