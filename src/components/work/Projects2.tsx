@@ -7,33 +7,33 @@ const FULLSTACK_PROJECTS = [
   {
     id: 0,
     name: 'Group Chat App',
-    url: 'https://group-chat-app-sigma.vercel.app/',
+    url: 'https://chat.rajkumaryd.in/',
   },
   {
     id: 1,
-    name: 'Expense tracker',
-    url: 'http://16.170.117.21/',
+    name: 'Ashboard',
+    url: 'https://ashboard.rajkumaryd.in/',
   }
 ]
 
 const WEB_PROJECTS = [
-  {
-    id: 0,
-    name: 'Ashboard',
-    url: 'https://ashboard-ruby.vercel.app/',
-    desc: '',
-  },
+  // {
+  //   id: 0,
+  //   name: 'Ashboard',
+  //   url: 'https://ashboard-ruby.vercel.app/',
+  //   desc: '',
+  // },
   {
     id: 1,
     name: 'Expense tracker',
     // url: 'https://expensetracker-7505d.web.app/',
     url: 'https://expense.rajkumaryd.in/',
   },
-  // {
-  //   id: 2,
-  //   name: 'Mailbox',
-  //   url: 'https://mailboxx-72dc0.web.app/',
-  // },
+  {
+    id: 2,
+    name: 'Mailbox',
+    url: 'https://mailboxx-72dc0.web.app/',
+  },
   {
     id: 3,
     name: 'Ecommerce',
