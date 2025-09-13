@@ -43,7 +43,85 @@ export default function ContactPage() {
   }
 
   return (
-    <Flex justify="center" align="center" style={{ minHeight: "80vh" }}>
+    <>
+    <Flex
+      style={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        minHeight: "80vh",
+      }}
+    >
+      <Card style={{ maxWidth: 480, width: "100%" }}>
+        <Flex direction="column" gap="24" padding="32" style={{ width: "100%" }}>
+          Get In Touch
+          <Heading as="h1" variant="heading-strong-l" align="center">
+            Have a project in mind or want to chat? Send me a message!
+          </Heading>
+          {isSuccess ? (
+            <Flex direction="column" style={{ alignItems: "center", gap: "16px" }}>
+              <Text variant="body-strong-m" color="success">
+                Message Sent!
+              </Text>
+              <Text variant="body-default-m">
+                Thank you for your message. I'll get back to you soon.
+              </Text>
+              <Button onClick={() => setIsSuccess(false)} variant="primary">
+                Send Another Message
+              </Button>
+            </Flex>
+          ) : (
+            <form onSubmit={form.handleSubmit(onSubmit)} style={{ width: "100%" }}>
+              <Flex direction="column" gap="16" style={{ width: "100%" }}>
+                <Input
+                  id="name"
+                  label="Name"
+                  placeholder="Your name"
+                  style={{ width: "100%" }}
+                  {...form.register("name")}
+                  error={!!form.formState.errors.name}
+                />
+                <Input
+                  id="email"
+                  label="Email"
+                  placeholder="Your email"
+                  type="email"
+                  style={{ width: "100%" }}
+                  {...form.register("email")}
+                  error={!!form.formState.errors.email}
+                />
+                <Input
+                  id="subject"
+                  label="Subject"
+                  placeholder="Message subject"
+                  style={{ width: "100%" }}
+                  {...form.register("subject")}
+                  error={!!form.formState.errors.subject}
+                />
+                <Textarea
+                  id="message"
+                  label="Message"
+                  placeholder="What would you like to say?"
+                  lines={5}
+                  style={{ width: "100%" }}
+                  {...form.register("message")}
+                  error={!!form.formState.errors.message}
+                />
+                <Button
+                  type="submit"
+                  variant="primary"
+                  disabled={isSubmitting}
+                  style={{ width: "100%" }}
+                >
+                  {isSubmitting ? "Sending..." : "Send Message"}
+                </Button>
+              </Flex>
+            </form>
+          )}
+        </Flex>
+      </Card>
+    </Flex>
+    {/* <Flex justify="center" align="center" style={{ minHeight: "80vh" }}>
       <Card style={{ maxWidth: 480, width: "100%" }}>
         <Flex direction="column" gap="24" padding="32" style={{ width: "100%" }}>
           Get In Touch
@@ -105,7 +183,9 @@ export default function ContactPage() {
           )}
         </Flex>
       </Card>
-    </Flex>
+    </Flex> */}
+    </>
+    
   )
 }
 
