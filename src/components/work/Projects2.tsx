@@ -26,28 +26,35 @@ const WEB_PROJECTS = [
   {
     id: 1,
     name: 'Expense tracker',
-    url: 'https://expensetracker-7505d.web.app/',
+    // url: 'https://expensetracker-7505d.web.app/',
+    url: 'https://expense.rajkumaryd.in/',
   },
-  {
-    id: 2,
-    name: 'Mailbox',
-    url: 'https://mailboxx-72dc0.web.app/',
-  },
+  // {
+  //   id: 2,
+  //   name: 'Mailbox',
+  //   url: 'https://mailboxx-72dc0.web.app/',
+  // },
   {
     id: 3,
     name: 'Ecommerce',
-    url: 'https://atomic-matrix-193707.web.app/',
+    // url: 'https://atomic-matrix-193707.web.app/',
+    url: 'https://viand.vercel.app/',
   },
-  {
-    id: 4,
-    name: 'Meetups',
-    url: 'https://meetups.rajkumaryd.in/',
-  }
+  // {
+  //   id: 4,
+  //   name: 'Meetups',
+  //   url: 'https://meetups.rajkumaryd.in/',
+  // }
 ]
 
 const PY_PROJECTS = [
   {
     id: 0,
+    name: 'Django Ashboard Backend',
+    url: 'https://ashback.rajkumaryd.in/',
+  },
+  {
+    id: 1,
     name: 'Auto Anime Downloader',
     url: 'https://github.com/RKY2023/AutoAnimeDownload',
   },
