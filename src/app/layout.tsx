@@ -11,6 +11,7 @@ import { Source_Code_Pro } from "next/font/google";
 
 import { person, home } from "@/app/resources/content";
 import { Background, Column, Flex, ToastProvider } from "@/once-ui/components";
+import ReduxProvider from "@/providers/ReduxProvider";
 
 export async function generateMetadata() {
   return {
@@ -55,8 +56,6 @@ type FontConfig = {
 */
 const secondary: FontConfig | undefined = undefined;
 const tertiary: FontConfig | undefined = undefined;
-/*
- */
 
 const code = Source_Code_Pro({
   variable: "--font-code",
@@ -90,8 +89,10 @@ export default async function RootLayout({ children }: RootLayoutProps) {
         code.variable,
       )}
     >
+      {/* <body> */}
       <ToastProvider>
-        <Column style={{ minHeight: "100vh" }} as="body" fillWidth margin="0" padding="0">
+        <ReduxProvider>
+          <Column style={{ minHeight: "100vh" }} as="body" fillWidth margin="0" padding="0">
           <Background
             mask={{
               cursor: effects.mask.cursor,
@@ -156,7 +157,9 @@ export default async function RootLayout({ children }: RootLayoutProps) {
           </Flex>
           <Footer />
         </Column>
+        </ReduxProvider>
       </ToastProvider>
+      {/* </body> */}
     </Flex>
   );
 }

@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { usePathname } from "next/navigation";
 import { routes, protectedRoutes } from "@/app/resources";
-import { Flex, Spinner, Input, Button, Heading, Column, PasswordInput } from "@/once-ui/components";
+import { Button, Heading, Column, PasswordInput } from "@/once-ui/components";
 import NotFound from "@/app/not-found";
+import { logger } from "@/utils/logger";
+import { errorHandler } from "@/utils/errorHandler";
+import { useAuthStore } from "@/store/authStore";
 
 interface RouteGuardProps {
 	children: React.ReactNode;
@@ -12,83 +15,105 @@ interface RouteGuardProps {
 
 const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
   const pathname = usePathname();
-  const [isRouteEnabled, setIsRouteEnabled] = useState(false);
-  const [isPasswordRequired, setIsPasswordRequired] = useState(false);
+  const { isAuthenticated, isPasswordRequired, error, loading } = useAuthStore();
+  const { setIsAuthenticated, setIsPasswordRequired, setError, setLoading } = useAuthStore();
+
+  const [isRouteEnabled, setIsRouteEnabled] = useState(true);
   const [password, setPassword] = useState("");
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [error, setError] = useState<string | undefined>(undefined);
-  const [loading, setLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Memoized helper function to check if route is in /my/* namespace
+  const isMyRoute = useCallback((path: string | null) => {
+    return path?.startsWith("/my") ?? false;
+  }, []);
+
+  // Memoized auth endpoint determination
+  const authEndpoint = useMemo(() => {
+    return isMyRoute(pathname) ? "/api/my/check-auth" : "/api/check-auth";
+  }, [pathname, isMyRoute]);
+
+  const checkRouteEnabled = useCallback(() => {
+    if (!pathname) return true;
+
+    if (pathname in routes) {
+      return routes[pathname as keyof typeof routes];
+    }
+
+    const dynamicRoutes = ["/blog", "/work"] as const;
+    for (const route of dynamicRoutes) {
+      if (pathname?.startsWith(route) && routes[route]) {
+        return true;
+      }
+    }
+
+    return true;
+  }, [pathname]);
 
   useEffect(() => {
     const performChecks = async () => {
-      setLoading(true);
-      setIsRouteEnabled(false);
-      setIsPasswordRequired(false);
-      setIsAuthenticated(false);
+      try {
+        setLoading(true);
 
-      const checkRouteEnabled = () => {
-        if (!pathname) return false;
+        const routeEnabled = checkRouteEnabled();
+        setIsRouteEnabled(routeEnabled);
+        logger.debug(`Route check for "${pathname}"`, { isEnabled: routeEnabled }, 'RouteGuard');
 
-        if (pathname in routes) {
-          return routes[pathname as keyof typeof routes];
-        }
+        if (protectedRoutes[pathname as keyof typeof protectedRoutes]) {
+          setIsPasswordRequired(true);
 
-        const dynamicRoutes = ["/blog", "/work"] as const;
-        for (const route of dynamicRoutes) {
-          if (pathname?.startsWith(route) && routes[route]) {
-            return true;
+          const response = await fetch(authEndpoint);
+          if (response.ok) {
+            setIsAuthenticated(true);
+            logger.info(`User authenticated for route "${pathname}"`, undefined, 'RouteGuard');
           }
         }
-
-        return false;
-      };
-
-      const routeEnabled = checkRouteEnabled();
-      setIsRouteEnabled(routeEnabled);
-
-      if (protectedRoutes[pathname as keyof typeof protectedRoutes]) {
-        setIsPasswordRequired(true);
-
-        const response = await fetch("/api/check-auth");
-        if (response.ok) {
-          setIsAuthenticated(true);
-        }
+      } catch (err) {
+        errorHandler.handle(err instanceof Error ? err : new Error(String(err)), 'RouteGuard');
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     };
 
     performChecks();
-  }, [pathname]);
+  }, [pathname, checkRouteEnabled, authEndpoint]);
 
-  const handlePasswordSubmit = async () => {
-    const response = await fetch("/api/authenticate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password }),
-    });
-
-    if (response.ok) {
-      setIsAuthenticated(true);
-      setError(undefined);
-    } else {
-      setError("Incorrect password");
+  const handlePasswordSubmit = useCallback(async () => {
+    if (!password.trim()) {
+      setError("Please enter a password");
+      return;
     }
-  };
 
-  if (loading) {
-    return (
-      <Flex fillWidth paddingY="128" horizontal="center">
-        <Spinner />
-      </Flex>
-    );
-  }
+    try {
+      const submitEndpoint = isMyRoute(pathname) ? "/api/my/authenticate" : "/api/authenticate";
 
-  if (!isRouteEnabled) {
-		return <NotFound />;
-	}
+      const response = await fetch(submitEndpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
 
-  if (isPasswordRequired && !isAuthenticated) {
+      if (response.ok) {
+        setIsAuthenticated(true);
+        setError(undefined);
+        logger.info(`Authentication successful for route "${pathname}"`, undefined, 'RouteGuard');
+      } else {
+        setError("Incorrect password");
+        errorHandler.logAuthError("Invalid password attempt", 'RouteGuard');
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Authentication failed";
+      setError(message);
+      errorHandler.handle(err instanceof Error ? err : new Error(message), 'RouteGuard');
+    }
+  }, [pathname, isMyRoute, password]);
+
+  // Render children immediately to avoid hydration mismatch
+  // Route and auth checks happen in background
+  if (isPasswordRequired && !isAuthenticated && isMounted) {
     return (
       <Column paddingY="128" maxWidth={24} gap="24" center>
         <Heading align="center" wrap="balance">
@@ -107,6 +132,10 @@ const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
       </Column>
     );
   }
+
+  if (!isRouteEnabled && !loading && isMounted) {
+		return <NotFound />;
+	}
 
   return <>{children}</>;
 };

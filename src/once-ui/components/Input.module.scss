@@ -49,7 +49,8 @@
     transform: translateY(-50%);
 
     &.floating {
-        transform: scale(0.75);
+        top: var(--static-space-8);
+        transform: scale(0.75) translateY(0);
     }
 }
 
@@ -71,6 +72,7 @@
     .label {
         &.floating {
             top: var(--static-space-4);
+            transform: scale(0.75) translateY(0);
         }
     }
 }
@@ -79,6 +81,7 @@
     .label {
         &.floating {
             top: calc(var(--static-space-8) - var(--static-space-2));
+            transform: scale(0.75) translateY(0);
         }
     }
 }

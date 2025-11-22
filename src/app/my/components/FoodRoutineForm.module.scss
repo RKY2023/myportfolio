@@ -1,0 +1,36 @@
+.mealSection {
+  border: 1px solid var(--neutral-alpha-medium);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.mealHeader {
+  width: 100%;
+  display: flex;
+  color:bisque;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--surface-secondary);
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: var(--surface-tertiary);
+  }
+}
+
+.mealItems {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.foodItem {
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--neutral-alpha-weak);
+  border-radius: 6px;
+}

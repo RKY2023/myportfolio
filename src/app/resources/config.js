@@ -7,12 +7,18 @@ const routes = {
   "/blog": true,
   "/gallery": true,
   "/contact": true,
+  "/my": true,
+  "/my/calendar": true,
+  "/my/diary": true,
 };
 
 // Enable password protection on selected routes
 // Set password in the .env file, refer to .env.example
 const protectedRoutes = {
   "/work/automate-design-handovers-with-a-figma-to-code-pipeline": true,
+  "/my": true,
+  "/my/calendar": true,
+  "/my/diary": true,
 };
 
 const style = {

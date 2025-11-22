@@ -1,0 +1,18 @@
+.navButton {
+  text-decoration: none;
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+}
+
+.breadcrumb {
+  cursor: pointer;
+  transition: color 0.2s ease;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}

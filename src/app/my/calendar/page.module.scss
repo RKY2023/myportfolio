@@ -1,0 +1,57 @@
+.eventsContainer {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 20px;
+  width: 100%;
+}
+
+.eventCard {
+  transition: all 0.3s ease;
+  border: 1px solid var(--neutral-alpha-medium);
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.eventIcon {
+  font-size: 1.75rem;
+  min-width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.milestoneBadge {
+  display: inline-block;
+  padding: 4px 8px;
+  background: linear-gradient(135deg, #fbbf24 0%, #f97316 100%);
+  color: white;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.statusBadge {
+  display: inline-block;
+  padding: 4px 8px;
+  color: white;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  text-transform: capitalize;
+}
+
+.tag {
+  display: inline-block;
+  padding: 6px 12px;
+  background: var(--brand-background-weak);
+  color: var(--brand-on-background-weak);
+  border-radius: 16px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}

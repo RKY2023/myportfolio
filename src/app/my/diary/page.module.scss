@@ -1,0 +1,43 @@
+.entriesContainer {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 20px;
+  width: 100%;
+}
+
+.entryCard {
+  transition: all 0.3s ease;
+  border: 1px solid var(--neutral-alpha-medium);
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.moodBadge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.tag {
+  display: inline-block;
+  padding: 6px 12px;
+  background: var(--brand-background-weak);
+  color: var(--brand-on-background-weak);
+  border-radius: 16px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.flag {
+  display: inline-block;
+  font-size: 1rem;
+  cursor: help;
+}

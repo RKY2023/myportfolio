@@ -38,3 +38,12 @@ lerna-debug.log*
 
 # typescript
 *.tsbuildinfo
+
+# AI generated files (keep .claude for Claude Code environment)
+/.chatgpt
+/.gptcache
+/.ai-temp
+/ai-logs.txt
+/ai-responses.json
+/ai-queries.txt
+/.claude
