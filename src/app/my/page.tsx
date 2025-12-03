@@ -12,7 +12,7 @@ export default function MyHome() {
           Welcome to Your Private Space
         </Heading>
         <Text variant="body-default-m" align="center">
-          Access your personal calendar and diary entries in this secure, password-protected area.
+          Access your personal calendar, diary entries, and location tracking in this secure, password-protected area.
         </Text>
       </Flex>
 
@@ -42,6 +42,20 @@ export default function MyHome() {
             </Text>
             <Button variant="primary" className={styles.cardButton}>
               Open Diary →
+            </Button>
+          </Card>
+        </Link>
+
+        {/* Location Card */}
+        <Link href="/my/location" className={styles.cardLink}>
+          <Card padding="32" gap="16" className={styles.card}>
+            <div className={styles.cardIcon}>📍</div>
+            <Heading variant="heading-strong-m">Location</Heading>
+            <Text variant="body-default-m">
+              Track your live location on the map. Set destinations and get proximity notifications.
+            </Text>
+            <Button variant="primary" className={styles.cardButton}>
+              Open Location →
             </Button>
           </Card>
         </Link>
