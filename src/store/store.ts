@@ -2,15 +2,22 @@ import { configureStore, ThunkAction, Action } from "@reduxjs/toolkit";
 import { diaryApi } from "./api/diaryApi";
 import { authApi } from "./api/authApi";
 import { timelineApi } from "./api/timelineApi";
+import { locationApi } from "./api/locationApi";
 
 export const store = configureStore({
   reducer: {
     [diaryApi.reducerPath]: diaryApi.reducer,
     [authApi.reducerPath]: authApi.reducer,
     [timelineApi.reducerPath]: timelineApi.reducer,
+    [locationApi.reducerPath]: locationApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(diaryApi.middleware, authApi.middleware, timelineApi.middleware),
+    getDefaultMiddleware().concat(
+      diaryApi.middleware,
+      authApi.middleware,
+      timelineApi.middleware,
+      locationApi.middleware
+    ),
 });
 
 export type RootState = ReturnType<typeof store.getState>;

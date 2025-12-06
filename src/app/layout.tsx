@@ -1,5 +1,6 @@
 import "@/once-ui/styles/index.scss";
 import "@/once-ui/tokens/index.scss";
+import "leaflet/dist/leaflet.css";
 
 import classNames from "classnames";
 
