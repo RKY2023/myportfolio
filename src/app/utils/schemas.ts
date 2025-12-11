@@ -1,5 +1,19 @@
 import * as z from "zod";
 
+// Destination Schema for Location Tracking
+export const destinationSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1, "Destination name is required"),
+  address: z.string().min(1, "Address is required"),
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+  notifyBefore: z.number().min(1).max(60).default(1), // Minutes before arrival
+  radius: z.number().min(10).max(1000).default(100), // Meters
+  isActive: z.boolean().default(false),
+  createdAt: z.string().datetime(),
+  arrivedAt: z.string().datetime().optional(),
+});
+
 // Health Status Schema
 export const healthStatusSchema = z
   .object({

@@ -10,6 +10,7 @@ const routes = {
   "/my": true,
   "/my/calendar": true,
   "/my/diary": true,
+  "/my/location": true,
 };
 
 // Enable password protection on selected routes
@@ -19,6 +20,7 @@ const protectedRoutes = {
   "/my": true,
   "/my/calendar": true,
   "/my/diary": true,
+  "/my/location": true,
 };
 
 const style = {
