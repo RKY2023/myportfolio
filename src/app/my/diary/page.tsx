@@ -11,7 +11,7 @@ import {
   Button,
   Input,
 } from "@/once-ui/components";
-import { useGetDiaryEntriesQuery, useCreateDiaryEntryMutation, DiaryEntry } from "@/store/api/diaryApi";
+import { useGetDiaryEntriesQuery, useCreateDiaryEntryMutation, useDeleteDiaryEntryMutation, DiaryEntry } from "@/store/api/diaryApi";
 import DiaryEditor from "../components/DiaryEditor";
 import FloatingActionButton from "../components/FloatingActionButton";
 import DiaryCalendar from "../components/DiaryCalendar";
@@ -82,6 +82,7 @@ export default function Diary() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
+  const [editingEntryId, setEditingEntryId] = useState<number | undefined>(undefined);
 
   // Build query params based on filters
   const queryParams: any = {
@@ -109,6 +110,7 @@ export default function Diary() {
   const { data: response, isLoading: loading, error } = useGetDiaryEntriesQuery(queryParams);
   const entries = response?.results || [];
   const [createDiaryEntry] = useCreateDiaryEntryMutation();
+  const [deleteDiaryEntry] = useDeleteDiaryEntryMutation();
 
   const moods = [
     "happy",
@@ -124,8 +126,23 @@ export default function Diary() {
   ];
 
   const handleCreateEntry = () => {
-    const today = new Date().toISOString().split("T")[0];
+    setEditingEntryId(undefined);
     setIsEditorOpen(true);
+  };
+
+  const handleEditEntry = (entryId: number) => {
+    setEditingEntryId(entryId);
+    setIsEditorOpen(true);
+  };
+
+  const handleDeleteEntry = async (entryId: number) => {
+    if (window.confirm("Are you sure you want to delete this entry?")) {
+      try {
+        await deleteDiaryEntry(entryId).unwrap();
+      } catch (error) {
+        console.error("Failed to delete entry:", error);
+      }
+    }
   };
 
   const handleDateSelected = (date: Date) => {
@@ -136,6 +153,7 @@ export default function Diary() {
     // RTK Query will automatically refetch entries due to cache invalidation
     // No need for window.location.reload()
     setIsEditorOpen(false);
+    setEditingEntryId(undefined);
   };
 
   const handleMonthChange = (year: number, month: number) => {
@@ -349,6 +367,24 @@ export default function Diary() {
                 </span>
               )}
             </Flex>
+
+            {/* Action Buttons */}
+            <Flex gap="8" horizontal="end">
+              <Button
+                variant="secondary"
+                size="s"
+                onClick={() => handleEditEntry(entry.id)}
+              >
+                Edit
+              </Button>
+              <Button
+                variant="secondary"
+                size="s"
+                onClick={() => handleDeleteEntry(entry.id)}
+              >
+                Delete
+              </Button>
+            </Flex>
           </Card>
         ))}
       </div>
@@ -359,8 +395,12 @@ export default function Diary() {
       {/* Diary Editor Modal */}
       <DiaryEditor
         isOpen={isEditorOpen}
-        onClose={() => setIsEditorOpen(false)}
+        onClose={() => {
+          setIsEditorOpen(false);
+          setEditingEntryId(undefined);
+        }}
         onSuccess={handleEntrySuccess}
+        entryId={editingEntryId}
         initialDate={new Date().toISOString().split("T")[0]}
       />
     </Column>

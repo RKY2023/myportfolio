@@ -1,37 +1,27 @@
 .cardGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   width: 100%;
-  gap: 24px;
+  gap: 20px;
 }
 
 .cardLink {
   text-decoration: none;
-  height: 100%;
   display: flex;
 }
 
 .card {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  height: 100%;
   cursor: pointer;
-  transition: all 0.3s ease;
-  border: 2px solid transparent;
+  transition: all 0.2s ease;
 
   &:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+    transform: translateY(-4px);
   }
 }
 
 .cardIcon {
-  font-size: 3rem;
+  font-size: 2.5rem;
   line-height: 1;
-}
-
-.cardButton {
-  width: 100%;
-  margin-top: 8px;
 }
