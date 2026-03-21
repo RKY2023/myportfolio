@@ -17,7 +17,7 @@ import { DestinationManager } from './components/DestinationManager';
 import { ProximityMonitor } from './components/ProximityMonitor';
 import { useProximityNotifications } from './components/useProximityNotifications';
 import { useGetDestinationsQuery } from '@/store/api/locationApi';
-import type { Destination } from '@/pages/api/locations/destinations';
+import type { Destination } from '@/lib/data-store';
 
 // Dynamically import the map to avoid SSR issues with Leaflet
 const LocationMap = dynamic(

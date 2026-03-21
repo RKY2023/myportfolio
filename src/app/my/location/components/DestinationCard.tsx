@@ -1,7 +1,7 @@
 'use client';
 
 import { Flex, Text, Button, Icon } from '@/once-ui/components';
-import type { Destination } from '@/pages/api/locations/destinations';
+import type { Destination } from '@/lib/data-store';
 
 interface DestinationCardProps {
   destination: Destination;

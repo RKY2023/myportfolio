@@ -11,7 +11,7 @@ import {
   hasArrived,
 } from '@/utils/distanceCalculator';
 import type { LocationCoordinates } from '@/store/locationStore';
-import type { Destination } from '@/pages/api/locations/destinations';
+import type { Destination } from '@/lib/data-store';
 
 interface ProximityMonitorProps {
   onNotify: (destination: Destination, eta: number, distance: number) => void;

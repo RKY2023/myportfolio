@@ -1,5 +1,5 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import type { Destination } from "@/pages/api/locations/destinations";
+import type { Destination } from "@/lib/data-store";
 
 export interface DestinationsResponse {
   count: number;

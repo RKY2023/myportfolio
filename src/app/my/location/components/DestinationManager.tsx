@@ -13,7 +13,7 @@ import {
 } from '@/store/api/locationApi';
 import { useLocationStore } from '@/store/locationStore';
 import { calculateDistance, calculateSpeed, calculateETA } from '@/utils/distanceCalculator';
-import type { Destination } from '@/pages/api/locations/destinations';
+import type { Destination } from '@/lib/data-store';
 import type { LocationCoordinates } from '@/store/locationStore';
 
 type DestinationWithMetrics = Destination & {

@@ -2,7 +2,7 @@
 
 import { useToast } from '@/once-ui/components';
 import { Button, Flex } from '@/once-ui/components';
-import type { Destination } from '@/pages/api/locations/destinations';
+import type { Destination } from '@/lib/data-store';
 import { formatDistance, formatETA } from '@/utils/distanceCalculator';
 
 export function useProximityNotifications() {

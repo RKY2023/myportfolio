@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Dialog, Flex, Button, Input, Text } from '@/once-ui/components';
 import { searchAddress, debounce, type GeocodeResult } from '@/utils/geocoding';
-import type { Destination } from '@/pages/api/locations/destinations';
+import type { Destination } from '@/lib/data-store';
 
 interface DestinationFormProps {
   isOpen: boolean;
