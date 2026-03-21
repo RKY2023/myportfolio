@@ -1,5 +1,6 @@
 import mdx from "@next/mdx";
-import * as sass from 'sass';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
 
 let userConfig = undefined
 try {
@@ -18,14 +19,11 @@ const withMDX = mdx({
 const nextConfig = {
   pageExtensions: ["ts", "tsx", "md", "mdx"],
   sassOptions: {
-    implementation: sass,
+    implementation: 'sass',
   },
   // Performance optimizations
   compress: true,
   productionBrowserSourceMaps: false,
-  swcMinify: true,
-  // Enable optimized font loading
-  optimizeFonts: true,
   // Optimize images
   images: {
     formats: ['image/avif', 'image/webp'],
@@ -42,7 +40,7 @@ const nextConfig = {
       // Add redirect rules as needed
     ];
   },
-  // Custom headers for performance
+  // Custom headers for security and performance
   headers: async () => {
     return [
       {
@@ -59,6 +57,32 @@ const nextConfig = {
           {
             key: 'X-XSS-Protection',
             value: '1; mode=block',
+          },
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: blob: https:",
+              "font-src 'self' data:",
+              "connect-src 'self' https://nominatim.openstreetmap.org",
+              "frame-ancestors 'self'",
+              "base-uri 'self'",
+              "form-action 'self'",
+            ].join('; '),
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=31536000; includeSubDomains',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=(self)',
           },
         ],
       },
