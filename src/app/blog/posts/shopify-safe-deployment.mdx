@@ -1,0 +1,152 @@
+---
+title: "Shopify Safe Theme Deployment Workflow"
+publishedAt: "2026-03-21"
+summary: "How to safely merge a development theme into your live Shopify store without breaking checkout, apps, or metafields — using CLI, staging, and Git."
+tag: "Technology"
+---
+
+If you maintain multiple Shopify theme versions, never push your development theme directly over the live one. Instead, follow this staged deployment workflow to keep your store safe.
+
+---
+
+## Theme Inventory
+
+Before starting, know your theme IDs:
+
+| Theme | ID | Role |
+| --- | --- | --- |
+| Gokwik Theme 25th July 2025 | `152764580079` | **Live (production)** |
+| Development theme | `156149285103` | Active dev work |
+| Test / Staging theme | `156149219567` | Pre-publish validation |
+
+---
+
+## Step 1 — Pull Your Dev Theme Locally
+
+Sync your local copy to match the Shopify dev theme exactly before doing anything else:
+
+```bash
+shopify theme pull --theme 156149285103
+```
+
+This ensures you're working from the latest remote state, not a stale local copy.
+
+---
+
+## Step 2 — Duplicate the Live Theme as a Backup
+
+Never overwrite the live theme directly. First, create a backup:
+
+**Option A — CLI:**
+```bash
+shopify theme pull --theme 152764580079
+```
+
+**Option B — Shopify Admin:**
+Go to **Online Store → Themes → ⋯ → Duplicate**
+
+Rename the duplicate:
+```
+Live Backup Before Merge - 2026-03-21
+```
+
+This gives you a rollback point if anything goes wrong.
+
+---
+
+## Step 3 — Compare and Merge Files
+
+Shopify has no built-in merge tool, so you compare files manually. Copy only the **changed files** from your dev theme into the staging theme copy — avoid replacing the full theme unless necessary.
+
+> ⚠️ Replacing entire theme files can break GoKwik checkout, installed apps, and metafield bindings.
+
+**Recommended tools:**
+
+| Tool | Best For |
+| --- | --- |
+| VS Code + GitLens | Git-tracked Shopify projects |
+| Meld / Beyond Compare / DiffMerge | File-by-file visual comparison |
+| Shopify Theme Check + Liquid Language Server | Auto-detecting Liquid errors |
+
+---
+
+## Step 4 — Push Merged Version to Staging
+
+Once the staging theme has the merged changes:
+
+```bash
+shopify theme push --theme 156149219567 --allow-live
+```
+
+---
+
+## Step 5 — Test on Preview URL
+
+Run through this checklist before publishing:
+
+- [ ] Home banners render correctly
+- [ ] Collections page and filters
+- [ ] Product page + size chart
+- [ ] GoKwik checkout flow
+- [ ] Search, filters, login
+- [ ] Mobile responsiveness
+- [ ] Lighthouse scores (CLS / FCP)
+- [ ] Tracking pixels (Facebook Pixel, GA, Klaviyo)
+- [ ] Wishlist and cart drawer
+
+---
+
+## Step 6 — Publish to Live
+
+Once staging passes all checks:
+
+**Option A — Shopify Admin UI:**
+Go to **Online Store → Themes** → click the staging theme → **Publish**
+
+**Option B — CLI:**
+```bash
+shopify theme publish --theme 156149219567
+```
+
+---
+
+## Step 7 — Direct Dev Push (Unpublished)
+
+For pushing a consolidated dev branch without publishing it:
+
+```bash
+shopify theme push --unpublished --theme "kidbea-consolidated"
+```
+
+This uploads the theme to Shopify without making it live, so you can preview it first.
+
+---
+
+## Pro Tip — Version Control with Git
+
+Track your theme in Git to get a full changelog and prevent future conflicts:
+
+```bash
+# Initial setup
+git init
+git add .
+git commit -m "Initial Shopify theme version"
+
+# After merging dev → live
+git commit -m "Merged Development (#156149285103) → Live base"
+```
+
+This also lets you use VS Code's GitLens diff view to compare exactly what changed between deployments.
+
+---
+
+## Full Workflow Summary
+
+| Step | Action |
+| --- | --- |
+| 1 | Pull dev theme to local |
+| 2 | Duplicate live theme as backup |
+| 3 | Compare and merge changed files only |
+| 4 | Push merged version to staging theme |
+| 5 | Test full site on staging preview |
+| 6 | Publish staging theme to live |

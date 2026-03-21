@@ -1,0 +1,367 @@
+---
+title: "AWS Migration: t3.micro/small → m7i-flex.large for ML Workloads"
+publishedAt: "2026-03-21"
+summary: "Why t3 instances fall short for ML, API, and Celery workloads — and a zero-downtime, credit-safe migration guide to m7i-flex.large."
+tag: "Technology"
+---
+
+The `t3.small` and `t3.micro` are great entry-level instances, but once you add ML inference, background task queues (Celery), or data-heavy APIs, you hit their ceiling fast — 2GB RAM, burstable CPU that throttles under load, and no memory bandwidth headroom for NumPy or scikit-learn.
+
+This guide covers which instance to move to, why, and how to migrate without losing AWS credits or causing downtime.
+
+---
+
+## Why t3 Falls Short for ML
+
+| Limitation | t3.micro | t3.small | Impact |
+| --- | --- | --- | --- |
+| RAM | 1 GB | 2 GB | Model loading OOM |
+| CPU model | Burstable (10–20% baseline) | Burstable (20% baseline) | Training throttles hard |
+| Memory type | DDR4 (older gen) | DDR4 | Slow data pipelines |
+| ML instructions | SSE/AVX only | SSE/AVX only | No matrix acceleration |
+| Burst credit depletion | Fast | Fast | Sustained tasks crawl |
+
+---
+
+## Which Instance to Choose
+
+| Instance | vCPU | RAM | Hourly | Monthly | Best For |
+| --- | --- | --- | --- | --- | --- |
+| t3.small | 2 | 2 GB | $0.023 | ~$17 | Dev/test only |
+| t3.medium | 2 | 4 GB | $0.047 | ~$34 | Light API |
+| m5.large | 2 | 8 GB | $0.096 | ~$70 | Stable baseline |
+| m6i.large | 2 | 8 GB | $0.096 | ~$70 | API-heavy workloads |
+| **m7i-flex.large** | **2** | **8 GB** | **$0.0958** | **~$70** | **ML + Celery + API** |
+| m5.xlarge | 4 | 16 GB | $0.192 | ~$140 | Heavy ML training |
+
+**Recommendation: `m7i-flex.large`** — same price as m6i but with a newer processor, DDR5 memory, and hardware ML acceleration (AMX).
+
+---
+
+## m6i.large vs m7i-flex.large — Detailed Comparison
+
+### CPU Architecture
+
+| Aspect | m6i.large | m7i-flex.large |
+| --- | --- | --- |
+| Processor | 3rd Gen Intel Xeon (Ice Lake) | 4th Gen Intel Xeon (Sapphire Rapids) |
+| Base Frequency | 2.6 GHz | 2.6 GHz |
+| Turbo Frequency | Up to 3.5 GHz | Up to 3.8 GHz |
+| Instruction Sets | SSE, AVX, AVX2 | SSE, AVX, AVX2, **AMX** |
+| CPU Baseline | 100% always | 40% baseline → bursts to 100% |
+
+### Memory Subsystem
+
+| Aspect | m6i.large | m7i-flex.large |
+| --- | --- | --- |
+| Memory Type | DDR4 | **DDR5** |
+| RAM | 8 GB | 8 GB |
+| Memory Bandwidth | ~80 GB/s | **~160 GB/s** |
+| Network Bandwidth | 10 Gbps | 12.5 Gbps |
+| EBS Bandwidth | 10 Gbps | 10 Gbps |
+
+**AMX (Advanced Matrix Extensions)** on Sapphire Rapids provides up to 10x faster matrix/dot-product operations — directly benefits NumPy, scikit-learn, TensorFlow CPU, and XGBoost.
+
+---
+
+## Workload Impact Analysis
+
+### API Workloads
+
+- `m6i.large` — consistent baseline (100% CPU always available), no throttling, predictable latency
+- `m7i-flex.large` — 5% faster at peak, but 40% baseline can cause queue buildup under steady API traffic
+- **Winner for API-heavy: m6i.large**
+
+### ML Workloads (Training / Inference)
+
+- `m7i-flex.large` wins due to AMX acceleration and 2x memory bandwidth (DDR5)
+- Estimated training speedup on RandomForest (1 GB dataset): ~15% faster at full burst
+- At 40% baseline: ~2x slower — schedule ML jobs to avoid baseline throttling
+- **Winner for ML: m7i-flex.large**
+
+### Celery Background Tasks
+
+- Short, bursty jobs fit perfectly with m7i-flex burst model
+- Long-running continuous tasks risk hitting the 40% baseline ceiling
+- **Winner for bursty Celery: m7i-flex.large**
+
+### Workload Mix Recommendation
+
+| Scenario | Recommendation | Reason |
+| --- | --- | --- |
+| API dominant (>80%) | m6i.large | No throttling risk |
+| ML dominant (>80%) | m7i-flex.large | AMX + DDR5 |
+| Celery dominant (>80%) | m7i-flex.large | Burst fits bursty jobs |
+| Balanced mix | m7i-flex.large | Slightly cheaper, newer gen |
+| Reliability-critical | m6i.large | Predictable baseline |
+
+---
+
+## Pricing
+
+| Pricing Model | m6i.large | m7i-flex.large |
+| --- | --- | --- |
+| On-Demand | $70/mo | $70/mo |
+| 1-Year Savings Plan | ~$56/mo | ~$56/mo |
+| 3-Year Savings Plan | ~$49/mo | ~$49/mo |
+| Spot (~70% off) | ~$21/mo | ~$21/mo |
+
+For 24/7 production: use a **1-Year Savings Plan** (~$56/mo). For batch ML jobs: **Spot instances** (~$21/mo) work well since interruptions are acceptable.
+
+---
+
+## Migration: t3.micro → m7i-flex.large
+
+> Your AWS credits **will not be lost**. Credits apply at the account level, not per instance. Both old and new instances consume credits from the same pool.
+
+### Phase 1 — Prepare
+
+**1. Document your current config:**
+
+```bash
+# Note down these before touching anything
+# - Security group IDs
+# - IAM role name
+# - EBS volume IDs and sizes
+# - Elastic IP allocation ID (if any)
+# - Environment variables / .env files
+```
+
+**2. Backup application data to S3:**
+
+```bash
+tar -czf ~/backup.tar.gz /app
+aws s3 cp ~/backup.tar.gz s3://your-bucket/backups/migration-$(date +%Y%m%d).tar.gz
+```
+
+**3. Get your instance ID:**
+
+```bash
+aws ec2 describe-instances \
+  --filters "Name=instance-type,Values=t3.micro" \
+  --query 'Reservations[0].Instances[0].InstanceId' \
+  --region us-east-1
+# Output: i-0123456789abcdef0
+```
+
+### Phase 2 — Create AMI Snapshot
+
+**4. Stop the t3.micro (don't terminate):**
+
+```bash
+aws ec2 stop-instances --instance-ids i-0123456789abcdef0 --region us-east-1
+aws ec2 wait instance-stopped --instance-ids i-0123456789abcdef0 --region us-east-1
+```
+
+**5. Create an AMI from the stopped instance:**
+
+```bash
+aws ec2 create-image \
+  --instance-id i-0123456789abcdef0 \
+  --name "t3-micro-backup-$(date +%Y%m%d)" \
+  --description "Backup before m7i-flex migration" \
+  --region us-east-1
+# Output: { "ImageId": "ami-0abc123def456ghi" }
+```
+
+Save the `ImageId` — you'll launch from it.
+
+### Phase 3 — Launch m7i-flex.large
+
+**6. Launch new instance from the AMI:**
+
+```bash
+aws ec2 run-instances \
+  --image-id ami-0abc123def456ghi \
+  --instance-type m7i-flex.large \
+  --key-name your-keypair-name \
+  --security-group-ids sg-0123456789abcdef0 \
+  --iam-instance-profile Name=your-iam-role \
+  --region us-east-1 \
+  --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=app-m7i-flex}]'
+```
+
+**7. Get the new public IP:**
+
+```bash
+aws ec2 describe-instances \
+  --filters "Name=tag:Name,Values=app-m7i-flex" \
+  --query 'Reservations[0].Instances[0].PublicIpAddress' \
+  --region us-east-1
+```
+
+### Phase 4 — Verify
+
+**8. SSH in and check everything:**
+
+```bash
+ssh -i your-key.pem ec2-user@<new-public-ip>
+
+# Confirm instance type
+curl http://169.254.169.254/latest/meta-data/instance-type
+# Should return: m7i-flex.large
+
+# Check RAM
+free -h
+# Should show ~8GB
+
+# Check services
+docker ps                        # if using Docker
+systemctl status your-app        # if using systemd
+celery -A app inspect active     # if using Celery
+
+# Test API
+curl http://localhost:8000/health
+```
+
+**9. Reassign Elastic IP (if you have one):**
+
+```bash
+# Disassociate from old instance
+aws ec2 disassociate-address --association-id eipassoc-abc123 --region us-east-1
+
+# Associate with new instance
+aws ec2 associate-address \
+  --instance-id i-new123456 \
+  --allocation-id eipalloc-abc123 \
+  --region us-east-1
+```
+
+### Phase 5 — Cleanup (After 24h Monitoring)
+
+**10. Once stable, terminate the old instance:**
+
+```bash
+# ⚠️ Only run this after 24+ hours of verified stable operation
+aws ec2 terminate-instances \
+  --instance-ids i-0123456789abcdef0 \
+  --region us-east-1
+```
+
+**11. Clean up old snapshots (optional):**
+
+```bash
+# List your snapshots
+aws ec2 describe-snapshots \
+  --owner-ids self \
+  --region us-east-1 \
+  --query 'Snapshots[*].[SnapshotId,StartTime,Description]' \
+  --output table
+
+# Delete old ones you no longer need
+aws ec2 delete-snapshot --snapshot-id snap-old123456 --region us-east-1
+```
+
+---
+
+## Automated Migration Script
+
+Save as `migrate.sh` and fill in your values:
+
+```bash
+#!/bin/bash
+set -e
+
+INSTANCE_ID="i-0123456789abcdef0"   # Your t3.micro ID
+REGION="us-east-1"
+SECURITY_GROUP="sg-0123456789abcdef0"
+IAM_ROLE="your-iam-role"
+KEYPAIR="your-keypair-name"
+
+echo "▶ Stopping old instance..."
+aws ec2 stop-instances --instance-ids $INSTANCE_ID --region $REGION
+aws ec2 wait instance-stopped --instance-ids $INSTANCE_ID --region $REGION
+echo "✓ Instance stopped"
+
+echo "▶ Creating AMI..."
+AMI_ID=$(aws ec2 create-image \
+  --instance-id $INSTANCE_ID \
+  --name "migration-$(date +%Y%m%d-%H%M%S)" \
+  --region $REGION \
+  --query 'ImageId' \
+  --output text)
+echo "✓ AMI created: $AMI_ID"
+
+echo "▶ Waiting for AMI to be available..."
+aws ec2 wait image-available --image-ids $AMI_ID --region $REGION
+
+echo "▶ Launching m7i-flex.large..."
+NEW_INSTANCE=$(aws ec2 run-instances \
+  --image-id $AMI_ID \
+  --instance-type m7i-flex.large \
+  --key-name $KEYPAIR \
+  --security-group-ids $SECURITY_GROUP \
+  --iam-instance-profile Name=$IAM_ROLE \
+  --region $REGION \
+  --query 'Instances[0].InstanceId' \
+  --output text)
+echo "✓ New instance: $NEW_INSTANCE"
+
+aws ec2 wait instance-running --instance-ids $NEW_INSTANCE --region $REGION
+
+NEW_IP=$(aws ec2 describe-instances \
+  --instance-ids $NEW_INSTANCE \
+  --query 'Reservations[0].Instances[0].PublicIpAddress' \
+  --region $REGION \
+  --output text)
+
+echo ""
+echo "✅ Migration complete!"
+echo "   New instance: $NEW_INSTANCE"
+echo "   Public IP:    $NEW_IP"
+echo "   SSH:          ssh -i $KEYPAIR.pem ec2-user@$NEW_IP"
+echo ""
+echo "⚠️  Test for 24h, then terminate old instance:"
+echo "   aws ec2 terminate-instances --instance-ids $INSTANCE_ID --region $REGION"
+```
+
+```bash
+chmod +x migrate.sh
+./migrate.sh
+```
+
+---
+
+## Cost During Migration Window
+
+| Phase | t3.micro | m7i-flex | Running Cost |
+| --- | --- | --- | --- |
+| Before | Running | — | ~$5/mo |
+| During migration (~2h) | Stopped | Starting | +$0.19 |
+| Testing window (24h) | Stopped | Running | +$2.30 |
+| After cleanup | Terminated | Running | ~$70/mo |
+
+Total extra cost during migration: **~$2.50** — negligible.
+
+---
+
+## Post-Migration Verification Checklist
+
+- [ ] Instance type confirmed as `m7i-flex.large`
+- [ ] RAM shows ~8 GB (`free -h`)
+- [ ] All services running (Docker / systemd / Celery)
+- [ ] API endpoints respond correctly
+- [ ] Celery tasks execute and complete
+- [ ] Database connections established
+- [ ] File uploads / downloads work
+- [ ] Elastic IP / DNS routing updated
+- [ ] No errors in logs for 24+ hours
+- [ ] Old instance terminated
+
+---
+
+## Enable Git Version Control for Your Infrastructure
+
+Track instance changes and migration history:
+
+```bash
+# In your infrastructure config folder
+git init
+git add .
+git commit -m "Initial: t3.micro production config"
+
+# After migration
+git commit -m "Migrated t3.micro → m7i-flex.large for ML workloads"
+```
+
+This gives you a rollback reference and a changelog for every infrastructure decision.

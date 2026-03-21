@@ -1,5 +1,6 @@
 import { MDXRemote, MDXRemoteProps } from "next-mdx-remote/rsc";
 import React, { ReactNode } from "react";
+import remarkGfm from "remark-gfm";
 
 import { SmartImage, SmartLink, Text } from "@/once-ui/components";
 import { CodeBlock } from "@/once-ui/modules";
@@ -128,6 +129,48 @@ function createParagraph({ children }: TextProps) {
   );
 }
 
+function MDXTable({ children }: { children: ReactNode }) {
+  return (
+    <div style={{ overflowX: "auto", marginTop: "var(--static-space-16)", marginBottom: "var(--static-space-16)" }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--font-size-body-s)" }}>
+        {children}
+      </table>
+    </div>
+  );
+}
+
+function MDXTh({ children }: { children: ReactNode }) {
+  return (
+    <th
+      style={{
+        padding: "var(--static-space-8) var(--static-space-12)",
+        textAlign: "left",
+        fontWeight: "var(--font-weight-strong)",
+        borderBottom: "1px solid var(--neutral-border-medium)",
+        whiteSpace: "nowrap",
+        color: "var(--neutral-on-background-strong)",
+      }}
+    >
+      {children}
+    </th>
+  );
+}
+
+function MDXTd({ children }: { children: ReactNode }) {
+  return (
+    <td
+      style={{
+        padding: "var(--static-space-8) var(--static-space-12)",
+        borderBottom: "1px solid var(--neutral-border-weak)",
+        color: "var(--neutral-on-background-medium)",
+        verticalAlign: "top",
+      }}
+    >
+      {children}
+    </td>
+  );
+}
+
 const components = {
   p: createParagraph as any,
   h1: createHeading(1) as any,
@@ -138,6 +181,9 @@ const components = {
   h6: createHeading(6) as any,
   img: createImage as any,
   a: CustomLink as any,
+  table: MDXTable as any,
+  th: MDXTh as any,
+  td: MDXTd as any,
   Table,
   CodeBlock,
 };
@@ -149,6 +195,10 @@ type CustomMDXProps = MDXRemoteProps & {
 export function CustomMDX(props: CustomMDXProps) {
   return (
     // @ts-ignore: Suppressing type error for MDXRemote usage
-    <MDXRemote {...props} components={{ ...components, ...(props.components || {}) }} />
+    <MDXRemote
+      {...props}
+      options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }}
+      components={{ ...components, ...(props.components || {}) }}
+    />
   );
 }

@@ -1,0 +1,598 @@
+---
+title: "Migrating PostgreSQL from Supabase to AWS RDS"
+publishedAt: "2026-03-21"
+summary: "A 10-phase production migration playbook: Supabase → AWS RDS PostgreSQL with Django, Celery, and Vercel. Covers schema setup, data dump/restore, cutover, rollback, and decommission."
+tag: "Technology"
+---
+
+Moving a Django production app from Supabase to AWS RDS takes roughly 4–5 hours of setup and a 1–2 hour maintenance window. This guide covers every phase — from database creation to decommissioning Supabase after 30 days of stable operation.
+
+---
+
+## Estimated Timeline
+
+| Phase | Duration | Notes |
+| --- | --- | --- |
+| RDS Setup | 2–3 hours | AWS console, security groups, parameter groups |
+| Pre-Migration Prep | 1 hour | Backups, documentation |
+| Schema Migration | 30 min | Run Django migrations on RDS |
+| Maintenance Window | 1–2 hours | Actual cutover |
+| — Data dump | 20 min | From Supabase |
+| — Data restore | 30 min | To RDS |
+| — Verification | 20 min | Row counts, integrity checks |
+| — Config update + deploy | 30 min | Env vars, smoke tests |
+| Post-migration monitoring | 24 hours | Intensive watch |
+| Optimization | Ongoing | 7–30 days |
+
+**Total actual downtime: 1–2 hours** (maintenance window only)
+
+---
+
+## Phase 1 — Risk Assessment
+
+| Risk | Impact | Mitigation |
+| --- | --- | --- |
+| Data loss during migration | High | Full backup to S3, row-count verification |
+| Extended downtime | Medium | Tested procedure, rollback plan ready |
+| Performance degradation | Medium | RDS parameter tuning, CloudWatch alarms |
+| Connection pool exhaustion | Low | `CONN_MAX_AGE` tuning, RDS Proxy option |
+| Cost overrun | Low | Right-sized instance, monitoring enabled |
+
+---
+
+## Phase 2 — Pre-Migration Backup
+
+Before touching anything, dump Supabase to S3:
+
+```bash
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+
+pg_dump -h jxxxxxxxxxxxxxxxxxxx.supabase.co \
+        -U postgres.jxxxxxxxxxxxxxxxxxxx \
+        -d postgres \
+        -F c \
+        -b \
+        --no-acl \
+        --no-owner \
+        -f org_backup_${TIMESTAMP}.dump \
+        --verbose
+
+aws s3 cp org_backup_${TIMESTAMP}.dump s3://org-backups/pre-migration/
+```
+
+---
+
+## Phase 3 — Database Setup on RDS
+
+### Create Database and User
+
+Connect to your RDS instance as the master user and run:
+
+```sql
+-- Create database
+CREATE DATABASE db_name WITH
+    ENCODING 'UTF8'
+    LC_COLLATE 'en_US.UTF-8'
+    LC_CTYPE 'en_US.UTF-8';
+
+-- Create application user
+CREATE USER db_user WITH PASSWORD 'your_secure_password_here';
+
+-- Grant database privileges
+GRANT ALL PRIVILEGES ON DATABASE db_name TO db_user;
+
+-- Switch to new database
+\c db_name
+
+-- Grant schema privileges
+GRANT ALL ON SCHEMA public TO db_user;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO db_user;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO db_user;
+
+-- Ensure future objects are also granted
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO db_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO db_user;
+
+-- Install extensions
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+```
+
+### Run Django Migrations (Schema Only)
+
+Point Django at RDS temporarily:
+
+```python
+# settings.py (or .env)
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'db_name',
+        'USER': 'db_user',
+        'PASSWORD': 'your_password',
+        'HOST': 'org-production.xxxxx.ap-southeast-1.rds.amazonaws.com',
+        'PORT': '5432',
+    }
+}
+```
+
+```bash
+python manage.py migrate --database=default --no-input
+python manage.py showmigrations
+```
+
+### Verify Schema
+
+```bash
+psql -h $RDS_HOST -U db_user -d db_name
+```
+
+```sql
+\dt          -- list tables
+\di          -- list indexes
+
+SELECT table_name
+FROM information_schema.tables
+WHERE table_schema = 'public'
+ORDER BY table_name;
+```
+
+---
+
+## Phase 4 — Data Migration
+
+### Put App in Maintenance Mode
+
+**Vercel:**
+```bash
+vercel env add MAINTENANCE_MODE true production
+```
+
+**Django middleware:**
+```python
+# settings.py
+MAINTENANCE_MODE = True
+```
+
+Then stop all background jobs — Celery workers, cron jobs, and any incoming webhooks.
+
+### Dump from Supabase
+
+**Full dump (recommended):**
+
+```bash
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+
+pg_dump -h jxxxxxxxxxxxxxxxxxxx.supabase.co \
+        -U postgres.jxxxxxxxxxxxxxxxxxxx \
+        -d postgres \
+        -F c \
+        -b \
+        --no-acl \
+        --no-owner \
+        -f org_migration_${TIMESTAMP}.dump \
+        --verbose
+```
+
+**Data-only dump (if schema already created via migrations):**
+
+```bash
+pg_dump -h jxxxxxxxxxxxxxxxxxxx.supabase.co \
+        -U postgres.jxxxxxxxxxxxxxxxxxxx \
+        -d postgres \
+        -F c \
+        -a \
+        --disable-triggers \
+        --no-acl \
+        --no-owner \
+        -f org_data_only_${TIMESTAMP}.dump \
+        --verbose
+```
+
+### Restore to RDS
+
+**Full restore:**
+
+```bash
+pg_restore -h org-production.xxxxx.ap-southeast-1.rds.amazonaws.com \
+           -U db_user \
+           -d db_name \
+           --no-acl \
+           --no-owner \
+           --verbose \
+           --clean \
+           --if-exists \
+           org_migration_${TIMESTAMP}.dump
+```
+
+**Data-only restore:**
+
+```bash
+pg_restore -h $RDS_HOST \
+           -U db_user \
+           -d db_name \
+           --no-acl \
+           --no-owner \
+           --verbose \
+           --data-only \
+           --disable-triggers \
+           org_data_only_${TIMESTAMP}.dump
+```
+
+**Parallel restore (for large dumps):**
+
+```bash
+pg_restore -h $RDS_HOST \
+           -U db_user \
+           -d db_name \
+           --no-acl \
+           --no-owner \
+           -j 4 \
+           --verbose \
+           org_migration_${TIMESTAMP}.dump
+```
+
+### Post-Restore Fixes
+
+Re-enable triggers on all tables:
+
+```sql
+DO $$
+DECLARE
+    r RECORD;
+BEGIN
+    FOR r IN SELECT tablename FROM pg_tables WHERE schemaname = 'public'
+    LOOP
+        EXECUTE 'ALTER TABLE ' || quote_ident(r.tablename) || ' ENABLE TRIGGER ALL';
+    END LOOP;
+END $$;
+```
+
+Reset all sequences to current max values:
+
+```sql
+DO $$
+DECLARE
+    r RECORD;
+    max_id BIGINT;
+BEGIN
+    FOR r IN
+        SELECT
+            schemaname,
+            tablename,
+            pg_get_serial_sequence(schemaname||'.'||tablename, 'id') as seqname
+        FROM pg_tables
+        WHERE schemaname = 'public'
+        AND pg_get_serial_sequence(schemaname||'.'||tablename, 'id') IS NOT NULL
+    LOOP
+        EXECUTE 'SELECT COALESCE(MAX(id), 0) + 1 FROM '
+            || quote_ident(r.schemaname) || '.' || quote_ident(r.tablename) INTO max_id;
+        EXECUTE 'ALTER SEQUENCE ' || r.seqname || ' RESTART WITH ' || max_id;
+    END LOOP;
+END $$;
+```
+
+Update query planner statistics:
+
+```sql
+VACUUM ANALYZE;
+```
+
+---
+
+## Phase 5 — Data Verification
+
+### Row Count Check
+
+Run on both Supabase and RDS, then compare:
+
+```sql
+-- Full table row counts
+SELECT
+    schemaname,
+    tablename,
+    n_live_tup as row_count
+FROM pg_stat_user_tables
+ORDER BY n_live_tup DESC;
+
+```
+
+```bash
+# Save and diff
+psql -h $SUPABASE_HOST -c "SELECT ..." > supabase_counts.txt
+psql -h $RDS_HOST      -c "SELECT ..." > rds_counts.txt
+diff supabase_counts.txt rds_counts.txt
+```
+
+### Foreign Key Integrity
+
+```sql
+-- Verify FK constraints exist
+SELECT conname, conrelid::regclass, confrelid::regclass
+FROM pg_constraint
+WHERE contype = 'f'
+AND connamespace = 'public'::regnamespace;
+
+-- Check for orphaned records (should return 0)
+<SQL Query for JOINS>
+```
+
+### Index Verification
+
+```sql
+SELECT
+    schemaname,
+    tablename,
+    COUNT(*) as index_count
+FROM pg_indexes
+WHERE schemaname = 'public'
+GROUP BY schemaname, tablename
+ORDER BY tablename;
+```
+
+---
+
+## Phase 6 — Application Configuration
+
+### Environment Variables
+
+Remove Supabase variables:
+
+```bash
+# Remove these
+SUPABASE_HOST
+SUPABASE_PORT
+SUPABASE_DB_NAME
+SUPABASE_DB_USER
+SUPABASE_DB_PASSWORD
+DATABASE_POOLED_URL
+```
+
+Add RDS variables:
+
+```bash
+DB_HOST=org-production.xxxxx.ap-southeast-1.rds.amazonaws.com
+DB_PORT=5432
+DB_NAME=db_name
+DB_USER=db_user
+DB_PASSWORD=your_secure_password
+
+# Full URL form
+DATABASE_URL=postgresql://db_user:password@org-production.xxxxx.rds.amazonaws.com:5432/db_name
+
+# If using RDS Proxy
+DB_HOST=org-proxy.proxy-xxxxx.ap-southeast-1.rds.amazonaws.com
+```
+
+### Django Settings
+
+No code changes needed — update via env vars only:
+
+```python
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': config('DB_NAME'),
+        'USER': config('DB_USER'),
+        'PASSWORD': config('DB_PASSWORD'),
+        'HOST': config('DB_HOST'),
+        'PORT': config('DB_PORT', default='5432'),
+        'CONN_MAX_AGE': 600,
+        'OPTIONS': {
+            'sslmode': 'require',
+            'connect_timeout': 10,
+        }
+    }
+}
+```
+
+### Connection Pooling Strategy
+
+| Option | How | Best For |
+| --- | --- | --- |
+| Django `CONN_MAX_AGE` | Set to 600 (already in settings) | Low–moderate traffic, simplest |
+| RDS Proxy | Update `DB_HOST` to proxy endpoint | Production, auto-failover |
+| PgBouncer on EC2 | Extra infra to manage | Full control needed |
+
+**Start with option 1. Add RDS Proxy if you see connection exhaustion in CloudWatch.**
+
+---
+
+## Phase 7 — Testing
+
+### Connectivity
+
+```bash
+psql -h $RDS_HOST -U db_user -d db_name -c "SELECT version();"
+python manage.py dbshell
+```
+
+```python
+# manage.py shell
+from django.db import connection
+cursor = connection.cursor()
+cursor.execute("SELECT COUNT(*) FROM sales_saleorder")
+print(cursor.fetchone())
+```
+
+### Django Test Suite
+
+```bash
+python manage.py test
+python manage.py test sales
+python manage.py test product
+python manage.py test forecasting
+python manage.py test integrations.unicommerce
+```
+
+### Performance Baseline
+
+```sql
+\timing on
+EXPLAIN ANALYZE SELECT * FROM sales_saleorder WHERE status = 'pending' LIMIT 100;
+EXPLAIN ANALYZE SELECT * FROM product_productvariant WHERE product_id = 1;
+```
+
+### Manual Checklist
+
+- [ ] User authentication (login / logout)
+- [ ] Create and view sale orders
+- [ ] Product variant queries
+- [ ] Forecasting queries
+- [ ] Unicommerce sync
+- [ ] API endpoints (Postman collection)
+- [ ] Admin panel access
+
+---
+
+## Phase 8 — Cutover (Maintenance Window)
+
+### Pre-Cutover Checklist
+
+- [ ] RDS running and accessible
+- [ ] Data migrated and verified
+- [ ] Application tested against RDS
+- [ ] Supabase backup saved to S3
+- [ ] Env vars prepared (not yet deployed)
+- [ ] Rollback plan documented
+- [ ] Stakeholders notified
+- [ ] CloudWatch dashboards open
+
+### Cutover Steps
+
+**T-0: Enable maintenance mode**
+
+```bash
+vercel env add MAINTENANCE_MODE true production
+```
+
+**T-5: Stop background jobs**
+
+Stop Celery workers, cron jobs, and incoming webhooks.
+
+**T-10: Final incremental sync**
+
+```bash
+pg_dump -h $SUPABASE_HOST -F c -f final_sync.dump
+pg_restore -h $RDS_HOST final_sync.dump
+```
+
+**T-30: Switch environment variables**
+
+```bash
+vercel env rm DB_HOST production
+vercel env add DB_HOST org-production.xxxxx.rds.amazonaws.com production
+# Repeat for DB_NAME, DB_USER, DB_PASSWORD, DB_PORT
+```
+
+**T-35: Deploy**
+
+```bash
+vercel --prod
+```
+
+**T-40: Smoke tests**
+
+```bash
+curl https://api.org.com/api/health
+curl -H "Authorization: Bearer $TOKEN" https://api.org.com/api/products/
+```
+
+**T-50: Re-enable background jobs**
+
+Restart Celery workers, cron jobs, and webhooks.
+
+**T-55: Disable maintenance mode**
+
+```bash
+vercel env rm MAINTENANCE_MODE production
+```
+
+**T-60+: Monitor**
+
+Watch application logs, RDS CloudWatch metrics, error rates, and API response times.
+
+### CloudWatch Alarms to Set
+
+| Metric | Threshold |
+| --- | --- |
+| CPU Utilization | > 80% |
+| DatabaseConnections | > 180 (of 200 max) |
+| FreeStorageSpace | < 10 GB |
+| ReadLatency | > 100ms |
+| WriteLatency | > 100ms |
+
+---
+
+## Phase 9 — Rollback Plan
+
+### Immediate Rollback (< 1 hour after cutover)
+
+```bash
+# Revert env vars to Supabase
+vercel env add DB_HOST aws-1-ap-southeast-1.pooler.supabase.com production
+# Restore all other Supabase DB vars
+vercel --prod
+```
+
+Then verify Supabase connectivity and re-enable traffic.
+
+### Extended Rollback (> 1 hour after cutover)
+
+If data has been written to RDS during the window:
+
+```sql
+-- On RDS: check scope of new data
+SELECT COUNT(*) FROM sales_saleorder WHERE created_at > '2026-03-21 10:00:00';
+```
+
+Decision criteria for rollback:
+- Critical bug preventing operation
+- Data corruption detected
+- Performance issues blocking users
+
+If counts are low, export new RDS data and merge back to Supabase. If counts are high, troubleshoot on RDS rather than rolling back.
+
+---
+
+## Phase 10 — Post-Migration Tasks
+
+### 7-Day Review
+
+```sql
+-- Enable slow query logging
+ALTER SYSTEM SET log_min_duration_statement = 1000;
+```
+
+Review CloudWatch Logs for slow queries, then add indexes where needed. Tune parameter group based on actual workload patterns.
+
+### 30-Day Decommission
+
+**Final Supabase backup:**
+
+```bash
+pg_dump -h $SUPABASE_HOST -F c -f supabase_final_backup.dump
+aws s3 cp supabase_final_backup.dump s3://org-backups/archive/
+```
+
+Then cancel the Supabase subscription, update all documentation, and remove Supabase references from runbooks and disaster recovery plans.
+
+### Cost Optimization After 30 Days
+
+- Review actual CPU/memory in CloudWatch
+- Purchase Reserved Instance if running 24/7 (saves 30–70%)
+- Consider Aurora Serverless if usage is highly variable
+- Audit backup retention (7–35 days)
+
+---
+
+## Success Criteria
+
+Migration is complete when all of the following are true:
+
+1. Row counts match between Supabase and RDS
+2. Application fully functional on RDS
+3. Average API response time < 200ms
+4. No data integrity violations
+5. Celery background jobs running normally
+6. Zero critical errors in 24 hours post-cutover
+7. Supabase no longer receives any traffic
