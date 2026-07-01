@@ -1,0 +1,133 @@
+---
+title: "Remove an Old Windows Install from D: (Keep Your Data)"
+publishedAt: "2026-06-22"
+image: "/images/gallery/img-10.jpg"
+summary: "How to safely delete a leftover Windows OS on another partition while keeping your data intact."
+tag: "Technology"
+---
+
+# Remove Old / Second Windows from D: (Keep Your Data)
+
+**Generated:** 2026-06-22
+**Goal:** Delete the leftover Windows OS on the `D:` partition **while keeping** your ~200 GB of data
+(`Downloads`, `Videos`, `Kidbea`, `Santosh`).
+
+> ⚠️ **Read this first.** These commands permanently delete files. There is **no Recycle Bin**
+> for `-Force` deletes. Do not change the paths. Every path below was verified to be the old OS,
+> not your data.
+
+---
+
+## What gets DELETED vs KEPT
+
+| ❌ DELETE (old Windows, ~17.5 GB)        | ✅ KEEP (do NOT touch)                  |
+| ---------------------------------------- | --------------------------------------- |
+| `D:\Windows`                             | `D:\Downloads`                          |
+| `D:\Program Files (x86)`                 | `D:\Videos`                             |
+| `D:\Users`  (only contains `Public`)     | `D:\Kidbea`                             |
+| `D:\Recovery`                            | `D:\Santosh`                            |
+| `D:\Documents and Settings` (junction)   | `D:\$Recycle.Bin` (live system manages) |
+| `D:\hiberfil.sys`                        | `D:\System Volume Information` (system) |
+| `D:\swapfile.sys`                        |                                         |
+| `D:\DumpStack.log.tmp`                   |                                         |
+
+---
+
+## STEP 0 — Open PowerShell as Administrator (REQUIRED)
+
+The old Windows files are owned by `TrustedInstaller`; a normal window gets "Access denied".
+
+1. Press **Start**, type `powershell`
+2. Right-click **Windows PowerShell** -> **Run as administrator**
+3. Click **Yes** on the UAC prompt
+
+---
+
+## STEP 1 — Safety check (confirms you won't break your PC)
+
+Paste this. It must print **C:** as the system drive. If it says `D:`, **STOP - do not continue.**
+
+```powershell
+"Running OS drive: $env:SystemDrive"   # must be C:
+if ($env:SystemDrive -eq 'D:') { Write-Host 'STOP! D: is the live OS.' -ForegroundColor Red }
+```
+
+---
+
+## STEP 2 — Take ownership of the locked OS folders
+
+`S-1-5-32-544` is the built-in Administrators group (language-independent).
+
+```powershell
+takeown /f "D:\Windows" /r /d y
+icacls "D:\Windows" /grant *S-1-5-32-544:F /t /c
+
+takeown /f "D:\Program Files (x86)" /r /d y
+icacls "D:\Program Files (x86)" /grant *S-1-5-32-544:F /t /c
+
+takeown /f "D:\Users" /r /d y
+icacls "D:\Users" /grant *S-1-5-32-544:F /t /c
+
+takeown /f "D:\Recovery" /r /d y
+icacls "D:\Recovery" /grant *S-1-5-32-544:F /t /c
+```
+
+---
+
+## STEP 3 — Delete the old Windows folders
+
+Run each line. `-LiteralPath` prevents any path misinterpretation.
+
+```powershell
+Remove-Item -LiteralPath "D:\Windows"             -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath "D:\Program Files (x86)" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath "D:\Users"               -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath "D:\Recovery"            -Recurse -Force -ErrorAction SilentlyContinue
+```
+
+If any folder stubbornly remains (in-use/locked file), use the classic command shell remover:
+
+```powershell
+cmd /c rd /s /q "D:\Windows"
+cmd /c rd /s /q "D:\Program Files (x86)"
+cmd /c rd /s /q "D:\Users"
+cmd /c rd /s /q "D:\Recovery"
+```
+
+---
+
+## STEP 4 — Remove the legacy junction and stale system files
+
+```powershell
+# 'Documents and Settings' is a junction (a redirect, not real data) - safe to remove:
+cmd /c rmdir "D:\Documents and Settings"
+
+# Stale boot files left over from when D: was bootable:
+Remove-Item -LiteralPath "D:\DumpStack.log.tmp" -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath "D:\hiberfil.sys"      -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath "D:\swapfile.sys"      -Force -ErrorAction SilentlyContinue
+```
+
+> If `hiberfil.sys` or `swapfile.sys` refuse to delete ("being used by another process"),
+> your **live** C: Windows is using D: for virtual memory. Fix via:
+> **Settings -> System -> About -> Advanced system settings -> Performance "Settings" ->
+> Advanced -> Virtual memory "Change"** -> select `D:` -> **No paging file** -> Set -> reboot,
+> then delete them.
+
+---
+
+## STEP 5 — Verify your data is intact and the OS is gone
+
+```powershell
+Get-ChildItem -Force "D:\" | Select-Object Mode, Name | Format-Table -AutoSize
+```
+
+- You should STILL see: `Downloads`, `Videos`, `Kidbea`, `Santosh`
+- You should NO LONGER see: `Windows`, `Program Files (x86)`, `Users`, `Recovery`
+
+---
+
+### Notes
+- `$Recycle.Bin` and `System Volume Information` will reappear/stay - they belong to your **current**
+  C: system managing the D: drive. Leave them alone.
+- Nothing here touches the C: drive or your running Windows.

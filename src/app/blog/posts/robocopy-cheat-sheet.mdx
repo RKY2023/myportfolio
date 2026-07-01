@@ -1,0 +1,247 @@
+---
+title: "Robocopy Cheat Sheet (Windows)"
+publishedAt: "2026-06-21"
+image: "/images/gallery/img-09.jpg"
+summary: "A practical cheat sheet for Robocopy — Windows' robust, multithreaded file copy and mirroring tool."
+tag: "Technology"
+---
+
+# Robocopy Cheat Sheet (Windows)
+
+**Robocopy** (Robust File Copy) is a built-in Windows command-line tool for mirroring, copying, and migrating files. Unlike `copy`/`xcopy`, it's resilient (auto-retries), multithreaded, and preserves metadata.
+
+```
+robocopy <Source> <Destination> [files] [options]
+```
+
+---
+
+## Core Syntax
+
+```bat
+robocopy C:\Source D:\Backup *.* /E
+```
+
+| Part | Meaning |
+|------|---------|
+| `Source` | Folder to copy *from* (no trailing `\`) |
+| `Destination` | Folder to copy *to* |
+| `*.*` | File filter (optional, default = all) |
+| `/E` | Include subdirs, **including empty ones** |
+
+---
+
+## Copy Scope
+
+| Flag | Description |
+|------|-------------|
+| `/S` | Copy subdirectories, **but not empty** ones |
+| `/E` | Copy subdirectories, **including empty** ones |
+| `/LEV:n` | Only copy top *n* levels of the tree |
+| `/MIR` | **Mirror** — `/E` + `/PURGE` (dest becomes identical to source) |
+| `/PURGE` | Delete dest files/dirs that no longer exist in source |
+| `/MOV` | Move files (delete from source after copy) |
+| `/MOVE` | Move files **and dirs** (delete from source) |
+| `/CREATE` | Create dir tree + zero-length files only (structure scaffold) |
+
+> ⚠️ **`/MIR` deletes.** Anything in the destination not in the source gets removed. Always dry-run first.
+
+---
+
+## What Gets Copied (Attributes)
+
+| Flag | Copies |
+|------|--------|
+| `/COPY:DAT` | **D**ata, **A**ttributes, **T**imestamps (default) |
+| `/COPY:DATSOU` | Adds **S**ecurity (ACLs), **O**wner, a**U**diting |
+| `/COPYALL` | Everything = `/COPY:DATSOU` |
+| `/DCOPY:DAT` | Copy directory timestamps too |
+| `/SEC` | Copy with security (= `/COPY:DATS`) |
+| `/NOCOPY` | Copy nothing (used with `/PURGE` to only clean dest) |
+
+**Flag letters:** `D`=Data, `A`=Attributes, `T`=Timestamps, `S`=NTFS ACLs, `O`=Owner info, `U`=Auditing info.
+
+---
+
+## Performance (Advanced)
+
+| Flag | Effect |
+|------|--------|
+| `/MT[:n]` | **Multithreaded** copy, n = 1–128 threads (default 8). Huge speedup on many small files |
+| `/J` | Unbuffered I/O — best for **large files** (VMs, ISOs, DBs) |
+| `/NOOFFLOAD` | Disable Windows copy offload (for some SAN/NAS edge cases) |
+| `/COMPRESS` | SMB compression during transfer (Win11/Server 2022+) |
+| `/IPG:n` | Inter-packet gap (ms) — throttle bandwidth on slow links |
+
+```bat
+robocopy \\src\share D:\local /E /MT:32 /J
+```
+
+> Tip: `/MT` and logging — multithreaded output interleaves, so always pair with `/LOG` for clean records.
+
+---
+
+## Selecting / Filtering Files
+
+| Flag | Meaning |
+|------|---------|
+| `/XF file [file]...` | e**X**clude **F**iles (supports wildcards: `*.tmp`) |
+| `/XD dir [dir]...` | e**X**clude **D**irectories (e.g. `node_modules`) |
+| `/XO` | Exclude **older** — skip src files older than dest |
+| `/XN` | Exclude **newer** |
+| `/XC` | Exclude **changed** |
+| `/XX` | Exclude **extra** (dest-only) files — *protects them from `/MIR`* |
+| `/XL` | Exclude **lonely** (src-only) files |
+| `/IS` | **Include same** — recopy identical files |
+| `/IT` | Include tweaked files |
+| `/MAX:n` / `/MIN:n` | Max/min file **size** in bytes |
+| `/MAXAGE:n` / `/MINAGE:n` | Max/min file **age** (n days, or `YYYYMMDD`) |
+| `/MAXLAD` / `/MINLAD` | Filter by **last access** date |
+| `/A` | Copy only files with Archive attribute set |
+| `/M` | Same as `/A` but **clears** the Archive bit (incremental backups) |
+| `/IA:RASHCNETO` / `/XA:...` | Include/exclude by attribute |
+
+---
+
+## Resilience & Retry
+
+| Flag | Description |
+|------|-------------|
+| `/R:n` | **Retry** count on failed copies (default **1 million** — set low!) |
+| `/W:n` | **Wait** seconds between retries (default 30) |
+| `/Z` | Restartable mode (resume interrupted large copies) |
+| `/B` | Backup mode — uses backup privileges to bypass ACLs |
+| `/ZB` | Try restartable; fall back to backup mode (best for migrations) |
+| `/TBD` | Wait for share names to be defined |
+| `/EFSRAW` | Copy encrypted (EFS) files in raw mode |
+
+> 🔑 **Always set `/R:3 /W:5`.** Defaults (`/R:1000000 /W:30`) can hang for *weeks* on a single locked file.
+
+---
+
+## Logging & Reporting
+
+| Flag | Description |
+|------|-------------|
+| `/L` | **List only** — dry run, copies nothing (test `/MIR` here!) |
+| `/LOG:file` | Write log (overwrite) |
+| `/LOG+:file` | Write log (append) |
+| `/UNILOG:file` | Unicode log |
+| `/TEE` | Output to console **and** log |
+| `/NP` | No progress % (cleaner logs) |
+| `/NDL` | No directory list |
+| `/NFL` | No file list |
+| `/NS` | No size info |
+| `/NC` | No file class |
+| `/V` | Verbose (shows skipped files) |
+| `/ETA` | Show estimated completion time |
+| `/BYTES` | Sizes in bytes |
+| `/X` | Report all extra files (not just selected) |
+
+**Clean-log combo:** `/NP /NDL /NFL /NC /NS` then check the summary table only.
+
+---
+
+## Common Recipes
+
+**Dry-run a mirror (do this first, always):**
+```bat
+robocopy C:\Data D:\Backup /MIR /L /NP
+```
+
+**True mirror with safe retries + log:**
+```bat
+robocopy C:\Data D:\Backup /MIR /R:3 /W:5 /MT:16 /LOG:C:\logs\backup.log /TEE /NP
+```
+
+**Server migration preserving all permissions:**
+```bat
+robocopy \\OLD\Share \\NEW\Share /E /ZB /COPYALL /DCOPY:DAT /R:2 /W:5 /MT:32 /LOG:migrate.log
+```
+
+**Incremental backup (only changed files, clears archive bit):**
+```bat
+robocopy C:\Source D:\Dest /M /E /R:2 /W:5
+```
+
+**Move files older than 30 days to archive:**
+```bat
+robocopy C:\Active D:\Archive /MOV /MINAGE:30 /E /R:1 /W:1
+```
+
+**Copy only large files (>100 MB), unbuffered:**
+```bat
+robocopy C:\VMs D:\VMs *.vhdx /J /MIN:104857600 /R:2 /W:5
+```
+
+**Sync but protect destination-only files from deletion:**
+```bat
+robocopy C:\Src D:\Dst /E /XX /R:2 /W:5
+```
+
+---
+
+## Exit Codes (Advanced — Crucial for Scripting)
+
+Robocopy returns a **bitmask**, *not* the usual 0=success. Anything **< 8 is success**.
+
+| Code | Meaning |
+|------|---------|
+| `0` | No change — source & dest identical |
+| `1` | Files copied successfully |
+| `2` | Extra files/dirs in dest (not in source) |
+| `3` | `1+2` — copied + extras present |
+| `4` | Mismatched files/dirs |
+| `8` | **Some files failed to copy** (real error) |
+| `16` | Fatal error — no copy occurred |
+
+**Treat as failure only if code ≥ 8.** In batch/PowerShell:
+
+```powershell
+robocopy C:\Src D:\Dst /MIR /R:3 /W:5
+if ($LASTEXITCODE -ge 8) { Write-Error "Robocopy failed: $LASTEXITCODE" }
+else { Write-Host "OK ($LASTEXITCODE)" }
+```
+
+```bat
+:: Batch equivalent
+robocopy C:\Src D:\Dst /MIR
+if %ERRORLEVEL% GEQ 8 echo FAILED & exit /b 1
+exit /b 0
+```
+
+> ⚠️ In CI/scheduled tasks, a naive `if %ERRORLEVEL% NEQ 0` flags **normal successful copies** as failures. Always compare with `GEQ 8`.
+
+---
+
+## Advanced Concepts & Gotchas
+
+- **Job files:** Save complex command sets and reuse them.
+  ```bat
+  robocopy /SAVE:mybackup    :: writes mybackup.RCJ
+  robocopy /JOB:mybackup     :: run it
+  robocopy /JOB:mybackup /QUIT  :: parse & quit (validate without running)
+  ```
+- **Long paths (>260 chars):** Robocopy supports them natively — one of its biggest advantages over Explorer/`copy`.
+- **`/MIR` vs `/E /PURGE`:** identical. The danger is the **PURGE** half — if you point Source at the wrong/empty folder, you wipe the destination. Dry-run with `/L` guards against this.
+- **`/MT` + `/Z` conflict:** Restartable mode (`/Z`) is significantly slower and partially negated by multithreading — pick `/MT` for many small files, `/Z` (or `/J`) for big files over flaky links.
+- **Timestamps drift:** Without `/DCOPY:T` (or `/DCOPY:DAT`), **folder** timestamps reset to "now." Add it for true fidelity.
+- **Mirroring junctions/symlinks:** Robocopy follows them by default and can cause infinite loops. Use `/XJ` to exclude junction points; `/SL` to copy symlinks as links rather than targets.
+- **Permissions need elevation:** `/COPYALL`, `/B`, `/ZB`, and `/SEC` typically require an **admin** prompt; otherwise ACL/owner copy silently degrades.
+- **Bandwidth throttling:** No native rate limit, but `/IPG:n` (inter-packet gap in ms) approximates one for WAN copies.
+- **Empty-dir behavior:** `/S` skips empty folders; `/E` keeps them. Mirroring a structure-only tree needs `/E` (or `/CREATE`).
+
+---
+
+## Quick "Safe Defaults" Template
+
+```bat
+robocopy "SOURCE" "DEST" /E /R:3 /W:5 /MT:16 /COPY:DAT /DCOPY:DAT /XJ ^
+  /LOG:"C:\logs\robocopy_%date:~-4%%date:~3,2%%date:~0,2%.log" /TEE /NP
+```
+
+Drop `/E`→`/MIR` only **after** you've verified with `/L`.
+
+---
+
+*Reference cheat sheet — Windows built-in `robocopy`. Run `robocopy /?` for the full inline help.*

@@ -1,0 +1,432 @@
+---
+title: "nvidia-smi — Complete Reference"
+publishedAt: "2026-05-16"
+image: "/images/gallery/img-08.jpg"
+summary: "A complete reference for nvidia-smi — querying, monitoring, and managing NVIDIA GPUs from the command line."
+tag: "Technology"
+---
+
+# nvidia-smi — Complete Reference
+
+`nvidia-smi` (NVIDIA System Management Interface) is a command-line utility, built on top of the NVIDIA Management Library (NVML), for monitoring and managing NVIDIA GPU devices. It ships with the NVIDIA display driver.
+
+- **Works on:** Tesla, Quadro/RTX, GRID, and most GeForce GPUs.
+- **Platforms:** Linux and Windows (64-bit). On Windows it lives at
+  `C:\Windows\System32\nvidia-smi.exe` (already on `PATH`).
+- **Privileges:** Read/query commands need no special rights. Configuration
+  commands (power limits, clocks, ECC, resets) need **root** (Linux) or an
+  **Administrator** shell (Windows).
+
+---
+
+## Table of Contents
+
+1. [Reading the Default Output](#1-reading-the-default-output)
+2. [Basic Information Commands](#2-basic-information-commands)
+3. [Live Monitoring](#3-live-monitoring)
+4. [Targeted Queries (CSV / Scripting)](#4-targeted-queries-csv--scripting)
+5. [Process & Memory Inspection](#5-process--memory-inspection)
+6. [Topology & Multi-GPU](#6-topology--multi-gpu)
+7. [Administration & Configuration](#7-administration--configuration)
+8. [Device Selection](#8-device-selection)
+9. [Quick-Reference Cheat Sheet](#9-quick-reference-cheat-sheet)
+10. [Troubleshooting](#10-troubleshooting)
+
+---
+
+## 1. Reading the Default Output
+
+Running `nvidia-smi` with no arguments prints a two-part table.
+
+```
++-----------------------------------------------------------------------------+
+| NVIDIA-SMI 550.xx       Driver Version: 550.xx       CUDA Version: 12.4      |
+|-------------------------------+----------------------+----------------------+
+| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|===============================+======================+======================|
+|   0  NVIDIA RTX 4090      Off | 00000000:01:00.0  On  |                  N/A |
+| 30%   45C    P8    25W / 450W |   1024MiB / 24564MiB |      3%      Default |
++-------------------------------+----------------------+----------------------+
+
++-----------------------------------------------------------------------------+
+| Processes:                                                                  |
+|  GPU   GI   CI        PID   Type   Process name              GPU Memory      |
+|        ID   ID                                               Usage           |
+|=============================================================================|
+|    0   N/A  N/A      1234      C   python                        980MiB     |
++-----------------------------------------------------------------------------+
+```
+
+**Field meanings:**
+
+| Field | Meaning |
+|---|---|
+| `Driver Version` | Installed NVIDIA driver version. |
+| `CUDA Version` | **Maximum** CUDA runtime the driver supports — *not* the installed toolkit. Use `nvcc --version` for the toolkit. |
+| `Persistence-M` | Persistence mode (keeps driver loaded; Linux only). |
+| `Bus-Id` | PCIe address of the GPU. |
+| `Disp.A` | Whether a display is attached/active. |
+| `Volatile Uncorr. ECC` | Count of uncorrectable ECC errors since boot. |
+| `Fan` | Fan speed as a percentage of maximum. |
+| `Temp` | GPU core temperature in °C. |
+| `Perf` | Performance state, `P0` (max) to `P12` (idle). |
+| `Pwr:Usage/Cap` | Current power draw vs. the enforced power limit. |
+| `Memory-Usage` | Used vs. total framebuffer (VRAM) memory. |
+| `GPU-Util` | Percent of time a kernel was running over the last sample window. |
+| `Compute M.` | Compute mode (Default / Exclusive Process / Prohibited). |
+| `Process name` + `GPU Memory Usage` | Per-process VRAM consumption. `C` = compute, `G` = graphics, `C+G` = both. |
+
+---
+
+## 2. Basic Information Commands
+
+```bash
+nvidia-smi                      # Default overview table
+nvidia-smi -L                   # List each GPU: index, name, UUID
+nvidia-smi --list-gpus          # Same as -L (long form)
+nvidia-smi -q                   # Full detailed query — every NVML attribute
+nvidia-smi -q -i 0              # Detailed query, GPU 0 only
+nvidia-smi -q -d MEMORY         # Detailed query, only the MEMORY section
+nvidia-smi -q -d TEMPERATURE,POWER,CLOCK,UTILIZATION   # Multiple sections
+nvidia-smi -q -x                # Detailed query as XML (machine-readable)
+nvidia-smi -h                   # Top-level help
+nvidia-smi --help-query-gpu     # List of every valid --query-gpu field
+```
+
+**Valid `-d` / `--display` sections:**
+`MEMORY`, `UTILIZATION`, `ECC`, `TEMPERATURE`, `POWER`, `CLOCK`, `COMPUTE`,
+`PIDS`, `PERFORMANCE`, `SUPPORTED_CLOCKS`, `PAGE_RETIREMENT`, `ACCOUNTING`,
+`ENCODER_STATS`, `FBC_STATS`, `ROW_REMAPPER`.
+
+**Version-only output:**
+
+```bash
+nvidia-smi --query-gpu=driver_version --format=csv,noheader
+nvidia-smi --query-gpu=name,driver_version,vbios_version --format=csv
+```
+
+---
+
+## 3. Live Monitoring
+
+### 3.1 Repeat the full table
+
+```bash
+nvidia-smi -l 1                 # Loop, refresh every 1 second
+nvidia-smi -l 5                 # Refresh every 5 seconds
+nvidia-smi -lms 500             # Refresh every 500 milliseconds
+```
+
+On Linux you can also use `watch`:
+
+```bash
+watch -n 1 nvidia-smi
+```
+
+On **Windows PowerShell** there is no `watch`. Use the built-in loop or:
+
+```powershell
+while ($true) { Clear-Host; nvidia-smi; Start-Sleep -Seconds 1 }
+```
+
+### 3.2 `dmon` — scrolling device monitor
+
+One compact line per sample, ideal for logging.
+
+```bash
+nvidia-smi dmon                 # Default: all GPUs, 1-second interval
+nvidia-smi dmon -i 0            # Only GPU 0
+nvidia-smi dmon -d 2            # Sample every 2 seconds
+nvidia-smi dmon -c 10           # Print 10 samples then exit
+nvidia-smi dmon -s pucvmet      # Choose which metric groups to show
+nvidia-smi dmon -o DT           # Prefix each line with Date and Time
+```
+
+`-s` metric group flags:
+`p` power+temp · `u` utilization · `c` clocks · `v` power/thermal violations ·
+`m` framebuffer memory · `e` ECC + PCIe errors · `t` PCIe throughput.
+
+### 3.3 `pmon` — per-process monitor
+
+```bash
+nvidia-smi pmon                 # Per-process stats, all GPUs
+nvidia-smi pmon -i 0            # GPU 0 only
+nvidia-smi pmon -d 5            # 5-second interval (1–10 allowed)
+nvidia-smi pmon -c 20           # 20 samples then exit
+nvidia-smi pmon -s um           # u = util, m = memory
+```
+
+---
+
+## 4. Targeted Queries (CSV / Scripting)
+
+The `--query-gpu` + `--format` combination is the backbone of any GPU
+monitoring script.
+
+```bash
+# Human-readable CSV with headers and units
+nvidia-smi --query-gpu=index,name,temperature.gpu,utilization.gpu,memory.used,memory.total \
+           --format=csv
+
+# Parser-friendly: no header row, no unit suffixes
+nvidia-smi --query-gpu=utilization.gpu,memory.used,memory.free \
+           --format=csv,noheader,nounits
+```
+
+**`--format` modifiers:** `csv` (required base) · `noheader` (drop the title
+row) · `nounits` (strip ` MiB`, ` %`, ` W`, etc.).
+
+### Commonly used `--query-gpu` fields
+
+| Field | Description |
+|---|---|
+| `index` | Zero-based GPU index. |
+| `name` | Product name. |
+| `uuid` | Globally unique GPU identifier. |
+| `serial` | Board serial number. |
+| `pci.bus_id` | PCIe bus address. |
+| `driver_version` | Installed driver version. |
+| `temperature.gpu` | Core temperature (°C). |
+| `utilization.gpu` | GPU compute utilization (%). |
+| `utilization.memory` | Memory-controller utilization (%). |
+| `memory.total` | Total framebuffer memory. |
+| `memory.used` / `memory.free` | Used / free framebuffer memory. |
+| `power.draw` | Current power draw (W). |
+| `power.limit` | Enforced power limit (W). |
+| `power.max_limit` / `power.min_limit` | Power-limit bounds. |
+| `clocks.sm` / `clocks.gr` | SM / graphics clock (MHz). |
+| `clocks.mem` | Memory clock (MHz). |
+| `fan.speed` | Fan speed (%). |
+| `pstate` | Performance state (`P0`–`P12`). |
+| `compute_mode` | Compute mode. |
+| `ecc.errors.uncorrected.volatile.total` | Volatile uncorrectable ECC errors. |
+
+Run `nvidia-smi --help-query-gpu` for the full list.
+
+### Logging to a file every second
+
+```bash
+# Linux / macOS
+nvidia-smi --query-gpu=timestamp,utilization.gpu,memory.used,temperature.gpu,power.draw \
+           --format=csv -l 1 >> gpu_log.csv
+```
+
+```powershell
+# Windows PowerShell
+while ($true) {
+    nvidia-smi --query-gpu=timestamp,utilization.gpu,memory.used,temperature.gpu,power.draw `
+               --format=csv,noheader | Add-Content gpu_log.csv
+    Start-Sleep -Seconds 1
+}
+```
+
+---
+
+## 5. Process & Memory Inspection
+
+```bash
+nvidia-smi                      # Process table at the bottom of the output
+nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv
+nvidia-smi --query-compute-apps=pid,used_memory --format=csv,noheader,nounits
+nvidia-smi -q -d PIDS           # Detailed per-process section
+```
+
+`--query-compute-apps` fields: `pid`, `process_name`, `used_memory`, `gpu_uuid`.
+
+### Killing a stuck GPU process
+
+```bash
+# Linux — find the PID in nvidia-smi, then:
+kill -9 <PID>
+```
+
+```powershell
+# Windows
+taskkill /PID <PID> /F
+```
+
+> If memory stays occupied with **no process listed**, a process likely
+> crashed without releasing its CUDA context. On Linux, resetting the GPU
+> (`nvidia-smi --gpu-reset -i <id>`) usually clears it; otherwise reboot.
+
+---
+
+## 6. Topology & Multi-GPU
+
+```bash
+nvidia-smi topo -m              # GPU-to-GPU / GPU-to-NIC interconnect matrix
+nvidia-smi topo -mp             # Matrix showing PCIe paths
+nvidia-smi nvlink -s            # NVLink status (per link)
+nvidia-smi nvlink -c            # NVLink capabilities
+nvidia-smi nvlink -g 0          # NVLink throughput counters
+```
+
+**Reading the `topo -m` matrix** — connection legend:
+
+| Code | Meaning (fastest → slowest) |
+|---|---|
+| `NV#` | Connected over `#` NVLink links. |
+| `PIX` | Single PCIe bridge. |
+| `PXB` | Multiple PCIe bridges. |
+| `PHB` | Traverses a PCIe Host Bridge (CPU). |
+| `NODE` | Within the same NUMA node, across PCIe host bridges. |
+| `SYS` | Across NUMA nodes (slowest; crosses the CPU interconnect). |
+| `X` | Self. |
+
+---
+
+## 7. Administration & Configuration
+
+> All commands below modify GPU state. Run them as **root** (`sudo`) on Linux
+> or from an **Administrator** PowerShell/CMD on Windows. Target a specific
+> GPU with `-i <index>`; without `-i` the change applies to all GPUs.
+
+### 7.1 Persistence mode (Linux only)
+
+Keeps the driver loaded even when no client is active — removes driver
+load latency and stabilizes clocks.
+
+```bash
+sudo nvidia-smi -pm 1           # Enable persistence mode
+sudo nvidia-smi -pm 0           # Disable
+```
+
+### 7.2 Power limit
+
+```bash
+sudo nvidia-smi -pl 250         # Set enforced power limit to 250 W
+sudo nvidia-smi -i 0 -pl 300    # Set it on GPU 0 only
+```
+
+The value must fall between `power.min_limit` and `power.max_limit`
+(see `nvidia-smi -q -d POWER`).
+
+### 7.3 Clock locking
+
+```bash
+sudo nvidia-smi -i 0 -lgc 1500,1800   # Lock GPU (SM) clock to 1500–1800 MHz
+sudo nvidia-smi -i 0 -lmc 9500        # Lock memory clock
+sudo nvidia-smi -rgc                  # Reset GPU clocks to default
+sudo nvidia-smi -rmc                  # Reset memory clocks to default
+nvidia-smi -q -d SUPPORTED_CLOCKS     # List clock combinations the GPU allows
+sudo nvidia-smi -ac 9500,1800         # Set application clocks (mem,graphics)
+sudo nvidia-smi -rac                  # Reset application clocks
+```
+
+### 7.4 Compute mode
+
+```bash
+sudo nvidia-smi -c 0            # 0 = Default        (multiple contexts allowed)
+sudo nvidia-smi -c 1            # 1 = Exclusive Thread (deprecated)
+sudo nvidia-smi -c 2            # 2 = Prohibited     (no compute contexts)
+sudo nvidia-smi -c 3            # 3 = Exclusive Process (one context per GPU)
+```
+
+### 7.5 ECC memory
+
+```bash
+sudo nvidia-smi -e 1            # Enable ECC  (reboot required to take effect)
+sudo nvidia-smi -e 0            # Disable ECC (reboot required)
+sudo nvidia-smi -p 0            # Reset ECC error counters
+```
+
+### 7.6 GPU reset
+
+```bash
+sudo nvidia-smi --gpu-reset -i 0      # Reset GPU 0 (no work may be running on it)
+```
+
+### 7.7 GPU accounting
+
+Tracks per-process resource usage history.
+
+```bash
+sudo nvidia-smi -am 1                 # Enable accounting mode
+nvidia-smi --query-accounted-apps=pid,gpu_utilization,max_memory_usage --format=csv
+sudo nvidia-smi -caa                  # Clear accounted-apps buffer
+```
+
+### 7.8 MIG (Multi-Instance GPU — A100/H100 and newer)
+
+```bash
+sudo nvidia-smi -mig 1                # Enable MIG mode
+nvidia-smi mig -lgip                  # List available GPU-instance profiles
+sudo nvidia-smi mig -cgi 9,9 -C       # Create instances + compute instances
+nvidia-smi mig -lgi                   # List created GPU instances
+sudo nvidia-smi mig -dci && sudo nvidia-smi mig -dgi   # Destroy instances
+sudo nvidia-smi -mig 0                # Disable MIG mode
+```
+
+---
+
+## 8. Device Selection
+
+Most commands accept `-i` to target specific GPUs:
+
+```bash
+nvidia-smi -i 0                 # By index
+nvidia-smi -i 0,2               # Comma-separated list of indexes
+nvidia-smi -i GPU-a1b2c3d4-...  # By UUID
+nvidia-smi -i 0000:01:00.0      # By PCI bus ID
+```
+
+The environment variable `CUDA_VISIBLE_DEVICES` affects CUDA applications,
+**not** `nvidia-smi` — `nvidia-smi` always sees every physical GPU.
+
+---
+
+## 9. Quick-Reference Cheat Sheet
+
+| Goal | Command |
+|---|---|
+| Quick status | `nvidia-smi` |
+| List GPUs + UUIDs | `nvidia-smi -L` |
+| Watch live (1 s) | `nvidia-smi -l 1` |
+| Compact rolling monitor | `nvidia-smi dmon` |
+| Per-process monitor | `nvidia-smi pmon` |
+| Full attribute dump | `nvidia-smi -q` |
+| Only memory details | `nvidia-smi -q -d MEMORY` |
+| Scriptable stats | `nvidia-smi --query-gpu=... --format=csv,noheader,nounits` |
+| Who is using the GPU | `nvidia-smi --query-compute-apps=pid,used_memory --format=csv` |
+| Driver / CUDA version | `nvidia-smi` (header line) |
+| Interconnect topology | `nvidia-smi topo -m` |
+| Set power limit | `sudo nvidia-smi -pl 250` |
+| Reset a GPU | `sudo nvidia-smi --gpu-reset -i 0` |
+| List query fields | `nvidia-smi --help-query-gpu` |
+
+---
+
+## 10. Troubleshooting
+
+**`nvidia-smi: command not found` / `'nvidia-smi' is not recognized`**
+The driver is not installed or not on `PATH`. Install the NVIDIA driver. On
+Windows the binary is at `C:\Windows\System32\nvidia-smi.exe`.
+
+**`NVIDIA-SMI has failed because it couldn't communicate with the NVIDIA driver`**
+The kernel module is not loaded or the driver/kernel versions mismatch
+(common after a kernel update on Linux). Reinstall or rebuild the driver
+module; a reboot often fixes it.
+
+**`GPU-Util` is 0% but a job is running**
+Utilization is sampled over a short window — it reflects *whether a kernel
+was active*, not how hard it worked. A data-loading-bound job can show low
+utilization even while busy.
+
+**Memory used but no process shown**
+A crashed process left a dangling CUDA context. Reset the GPU
+(`nvidia-smi --gpu-reset`) or reboot.
+
+**`Insufficient Permissions`**
+A configuration command was run without elevation. Use `sudo` (Linux) or an
+Administrator shell (Windows).
+
+**Header CUDA version ≠ installed CUDA**
+Expected. The header shows the *maximum* CUDA version the driver supports.
+Check the installed toolkit with `nvcc --version`.
+
+---
+
+*Reference compiled 2026-05-16. Field names and flags reflect recent NVIDIA
+driver branches (R535/R550+); older drivers may omit some options. Always
+confirm against `nvidia-smi -h` on your system.*
