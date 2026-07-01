@@ -1,0 +1,246 @@
+---
+title: "Mastering nvidia-smi: The GPU Command Every Developer Should Know"
+publishedAt: "2026-05-16"
+image: "/images/gallery/img-06.jpg"
+summary: "A practical, example-driven guide to nvidia-smi — from reading the default table to live monitoring, scripting, and tuning your GPU."
+tag: "Technology"
+---
+
+# Mastering nvidia-smi: The GPU Command Every Developer Should Know
+
+If you train models, render video, or run anything CUDA-accelerated, there's
+one command you'll type more than almost any other: `nvidia-smi`. It's the
+Swiss Army knife for NVIDIA GPUs — installed automatically with the driver,
+available on both Linux and Windows, and capable of everything from a quick
+"is my GPU alive?" check to locking clock speeds for a benchmark.
+
+Most people learn exactly one thing about it — typing `nvidia-smi` and
+squinting at the table — and stop there. This post walks through everything
+that table *means*, and the dozen-or-so commands that turn `nvidia-smi` from
+a status screen into a real monitoring and tuning tool.
+
+---
+
+## Reading the Default Output
+
+Run it with no arguments:
+
+```bash
+nvidia-smi
+```
+
+You get a two-part table. The top half describes the GPU; the bottom half
+lists processes using it.
+
+```
++-----------------------------------------------------------------------------+
+| NVIDIA-SMI 550.xx       Driver Version: 550.xx       CUDA Version: 12.4      |
+|-------------------------------+----------------------+----------------------+
+| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|===============================+======================+======================|
+|   0  NVIDIA RTX 4090      Off | 00000000:01:00.0  On  |                  N/A |
+| 30%   45C    P8    25W / 450W |   1024MiB / 24564MiB |      3%      Default |
++-------------------------------+----------------------+----------------------+
+```
+
+A few fields people routinely misread:
+
+- **CUDA Version (top right).** This is the *maximum* CUDA version your
+  driver supports — **not** the toolkit you have installed. To see the actual
+  toolkit, run `nvcc --version`. This single misunderstanding is responsible
+  for a remarkable number of forum posts.
+- **GPU-Util.** This tells you whether a kernel was running during the sample
+  window — *not* how efficiently it ran. A job bottlenecked on data loading
+  can sit at 100% util while barely doing math.
+- **Perf (Pstate).** `P0` is maximum performance; `P8`/`P12` is idle. Seeing
+  `P8` while a job runs can mean the GPU isn't being pushed.
+- **Memory-Usage.** Used vs. total VRAM. This is the number you watch when
+  hunting down out-of-memory crashes.
+
+---
+
+## Watching It Live
+
+A static snapshot is rarely enough. To refresh the table on an interval:
+
+```bash
+nvidia-smi -l 1      # refresh every 1 second
+nvidia-smi -lms 500  # refresh every 500 milliseconds
+```
+
+On Linux, `watch -n 1 nvidia-smi` does the same. On Windows PowerShell there's
+no `watch`, so either use `-l 1` or roll your own loop:
+
+```powershell
+while ($true) { Clear-Host; nvidia-smi; Start-Sleep -Seconds 1 }
+```
+
+For something more compact — one tidy line per sample, perfect for leaving
+running in a side terminal — use the device monitor:
+
+```bash
+nvidia-smi dmon
+```
+
+And to see it broken down *per process*:
+
+```bash
+nvidia-smi pmon
+```
+
+---
+
+## The Command That Changes Everything: Custom Queries
+
+Here's the feature that separates casual users from power users. Instead of
+the fixed table, you can ask `nvidia-smi` for exactly the fields you want, in
+CSV:
+
+```bash
+nvidia-smi --query-gpu=name,temperature.gpu,utilization.gpu,memory.used,memory.total \
+           --format=csv
+```
+
+```
+name, temperature.gpu, utilization.gpu, memory.used [MiB], memory.total [MiB]
+NVIDIA RTX 4090, 45, 3, 1024, 24564
+```
+
+Want it clean enough to pipe into a script? Drop the header and the units:
+
+```bash
+nvidia-smi --query-gpu=utilization.gpu,memory.used \
+           --format=csv,noheader,nounits
+```
+
+```
+3, 1024
+```
+
+That's now trivially parseable. There are dozens of queryable fields —
+`power.draw`, `clocks.sm`, `fan.speed`, `pstate`, ECC error counts, and more.
+List them all with:
+
+```bash
+nvidia-smi --help-query-gpu
+```
+
+### A real example: log GPU stats to a CSV
+
+This is the kind of thing the query interface is built for — a one-liner that
+records GPU telemetry every second:
+
+```bash
+nvidia-smi --query-gpu=timestamp,utilization.gpu,memory.used,temperature.gpu,power.draw \
+           --format=csv -l 1 >> gpu_log.csv
+```
+
+Leave it running during a training job, then plot `gpu_log.csv` afterward to
+see exactly where your GPU was starved or thermal-throttled.
+
+---
+
+## Finding Out Who's Using Your GPU
+
+VRAM mysteriously full? Ask which processes are holding it:
+
+```bash
+nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv
+```
+
+Once you have the PID, free it:
+
+```bash
+kill -9 <PID>          # Linux
+taskkill /PID <PID> /F # Windows
+```
+
+One gotcha: if memory is occupied but **no process is listed**, a process
+crashed without releasing its CUDA context. On Linux, resetting the GPU
+usually clears it:
+
+```bash
+sudo nvidia-smi --gpu-reset -i 0
+```
+
+Otherwise, a reboot is the reliable fix.
+
+---
+
+## Tuning the GPU (Admin Territory)
+
+Everything so far was read-only. `nvidia-smi` can also *change* GPU behavior —
+these commands need `sudo` on Linux or an Administrator shell on Windows.
+
+**Cap power draw** (great for noise, heat, or shared power budgets):
+
+```bash
+sudo nvidia-smi -pl 250        # limit to 250 watts
+```
+
+**Lock clock speeds** for reproducible benchmarks:
+
+```bash
+sudo nvidia-smi -i 0 -lgc 1500,1800   # lock SM clock to 1500-1800 MHz
+sudo nvidia-smi -rgc                  # reset to default
+```
+
+**Enable persistence mode** (Linux) to keep the driver warm and clocks stable:
+
+```bash
+sudo nvidia-smi -pm 1
+```
+
+A word of caution: these settings change real hardware behavior. Know your
+GPU's limits (`nvidia-smi -q -d POWER` and `-d SUPPORTED_CLOCKS`) before you
+start, and reset clocks when you're done.
+
+---
+
+## Multi-GPU: Know Your Topology
+
+If you have more than one GPU, *how* they're connected matters enormously for
+performance. NVLink is dramatically faster than going across PCIe and the CPU.
+See the layout with:
+
+```bash
+nvidia-smi topo -m
+```
+
+In the matrix, `NV#` means an NVLink connection (fast), while `SYS` means the
+data has to cross between CPU sockets (slow). When a multi-GPU job runs slower
+than expected, this matrix is the first place to look.
+
+---
+
+## The Commands Worth Memorizing
+
+If you take away nothing else, internalize these:
+
+| Goal | Command |
+|---|---|
+| Quick check | `nvidia-smi` |
+| Watch live | `nvidia-smi -l 1` |
+| List GPUs | `nvidia-smi -L` |
+| Scriptable stats | `nvidia-smi --query-gpu=... --format=csv,noheader` |
+| Who's using the GPU | `nvidia-smi --query-compute-apps=pid,used_memory --format=csv` |
+| Full detail dump | `nvidia-smi -q` |
+| Interconnect topology | `nvidia-smi topo -m` |
+
+---
+
+## Wrapping Up
+
+`nvidia-smi` rewards a few minutes of curiosity. The default table answers
+"is it on?" — but the query interface answers "what is it *actually* doing?",
+and that's the question that matters when you're debugging a slow training
+run or chasing down an out-of-memory error.
+
+Next time you reach for it, don't stop at the table. Try a custom query, log
+some telemetry, look at your topology. Your GPU has a lot to tell you.
+
+---
+
+*Got a favorite `nvidia-smi` trick I missed? Let me know — I'm always
+collecting them.*

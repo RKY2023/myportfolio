@@ -1,0 +1,187 @@
+---
+title: "Windows Defender, PPL, and PUAs — Explained"
+publishedAt: "2026-06-21"
+image: "/images/gallery/img-11.jpg"
+summary: "Notes from investigating high CPU usage by MsMpEng.exe — how Defender, Protected Process Light, and PUAs fit together."
+tag: "Technology"
+---
+
+# Windows Defender, PPL, and PUAs — Explained
+
+> Notes from investigating high CPU usage by `MsMpEng.exe` (Antimalware Service Executable).
+
+---
+
+## 1. The situation
+
+- `MsMpEng.exe` (Windows Defender's core process) was consuming **~84% CPU** (system pinned at 100%).
+- It **cannot be killed** — `Stop-Process` returns **"Access is denied"** even as Administrator.
+- Reason: it runs as a **Protected Process Light (PPL)**, enforced by the Windows kernel.
+- Likely trigger: two **PUAs** detected on the machine —
+  - `PUA:Win32/FRProxy`
+  - `PUADlManager:Win32/Snackarcin`
+
+---
+
+## 2. What is a PUA?
+
+**PUA = Potentially Unwanted Application** (Microsoft also writes **PUP** — Potentially Unwanted Program).
+
+Not outright malware (no virus payload, doesn't encrypt files), but software that behaves in ways you
+probably didn't want and didn't clearly agree to. Defender flags it as a *nuisance/risk*, not a
+*threat-to-survive*. Typical traits:
+
+- **Bundleware** — piggybacked on a "free" installer.
+- **Adware / browser hijackers** — inject ads, change search engine/homepage.
+- **Download managers** that push more junk (e.g. `Snackarcin`).
+- **Proxy / traffic redirectors** (e.g. `FRProxy` — reroutes network traffic).
+- **"PC optimizers"** that nag you to pay.
+
+### Decoding the detection name
+
+```
+PUADlManager : Win32 / Snackarcin
+│             │       └─ malware family name
+│             └───────── platform (32-bit Windows)
+└─────────────────────── category (PUA, here a Download-Manager subtype)
+```
+
+---
+
+## 3. What is PPL (Protected Process Light)?
+
+PPL is **not** a flag you can set on any program. It is enforced by the **Windows kernel** and gated on
+**code signing**. A process can only run protected if its executable is signed with a special
+Microsoft-issued certificate that encodes a specific *protection level*. The kernel checks this signature
+at process creation — no valid cert, no protection.
+
+This is exactly why Defender survives "End Task": it is signed with the **Antimalware** EKU, so the kernel
+refuses any lower-privileged process the right to terminate it.
+
+### Signer types & protection levels
+
+| Signer type                    | Protection level | Example                                  |
+|--------------------------------|------------------|------------------------------------------|
+| `PsProtectedSignerAntimalware` | PPL              | **MsMpEng.exe** (Defender), 3rd-party AV |
+| `PsProtectedSignerLsa`         | PPL              | LSASS (Credential Guard / RunAsPPL on)   |
+| `PsProtectedSignerWindows`     | PPL / PP         | Windows components                       |
+| `PsProtectedSignerWinTcb`      | PP (full)        | Core trusted computing base              |
+
+---
+
+## 4. Diagram — Windows execution contexts
+
+```
+                        RING 3  —  USER MODE
+   ┌───────────────────────────────────────────────────────────────────┐
+   │                                                                     │
+   │   NORMAL process            PPL process            Your app         │
+   │   (a PUA, your app)         MsMpEng.exe             (wants to kill)  │
+   │   ┌───────────────┐         ┌───────────────┐      ┌────────────┐   │
+   │   │ Protection: 0 │         │ Protection:   │      │Protection:0│   │
+   │   │               │         │  PsProtected- │      │            │   │
+   │   │  threads ───┐ │         │  SignerAnti-  │      │ Terminate- │   │
+   │   │  T1 T2 T3   │ │         │  malware (PPL)│      │ Process() ─┼─┐ │
+   │   └─────────────┼─┘         └───────────────┘      └────────────┘ │ │
+   │                 │                   ▲                              │ │
+   └─────────────────┼───────────────────┼──────────────────────────────┼─┘
+        syscall ▼    │   (kernel checks "may I touch a PPL?")   request ▼│
+   ════════════════════════════════════════════════════════════════════════
+                        RING 0  —  KERNEL MODE
+   ┌───────────────────────────────────────────────────────────────────┐
+   │   NT Kernel (ntoskrnl.exe)                                          │
+   │                                                                     │
+   │   Each process = EPROCESS struct ──► holds PS_PROTECTION field      │
+   │                                       { Type, Signer }              │
+   │                                                                     │
+   │   When "Your app" calls TerminateProcess on MsMpEng:               │
+   │     kernel compares  caller.Protection  vs  target.Protection      │
+   │         0  <  Antimalware-PPL   ──►  ACCESS_DENIED  ✗               │
+   │                                                                     │
+   │   ELAM driver + signed cert is what set that field at launch       │
+   └───────────────────────────────────────────────────────────────────┘
+   ════════════════════════════════════════════════════════════════════════
+                        HARDWARE  (CPU enforces Ring 0 vs Ring 3)
+```
+
+**Key idea:** the *kill* request travels from your Ring-3 app → into the Ring-0 kernel → the kernel reads
+both processes' `PS_PROTECTION` and refuses, because `0 < PPL`. That is the "Access is denied" you saw.
+
+---
+
+## 5. Diagram — The PPL protection ladder (who can kill whom)
+
+```
+   HIGHER  ┌────────────────────────────────┐
+     ▲     │  PP   WinTcb        (full PP)   │  ← can act on everything below
+     │     ├────────────────────────────────┤
+     │     │  PPL  Windows                   │
+   can     ├────────────────────────────────┤
+   touch   │  PPL  Lsa     (LSASS, creds)    │
+   equal   ├────────────────────────────────┤
+   or      │  PPL  Antimalware  ◄── MsMpEng  │  ← Defender lives here
+   lower   ├────────────────────────────────┤
+     │     │  Protection 0  (normal apps)    │  ← PUAs, Task Manager, your app
+     ▼     └────────────────────────────────┘
+   LOWER
+
+   RULE:  a process may terminate/inject another ONLY IF
+          its level  ≥  the target's level.
+   So  "0"  can never kill  "Antimalware-PPL".  ✗
+```
+
+---
+
+## 6. Diagram — How a process *becomes* PPL (the gated path)
+
+```
+  Vendor binary (MsMpEng.exe)
+        │
+        │  1. Signed with Microsoft ANTIMALWARE certificate
+        │     (carries a special EKU OID = protection level)
+        ▼
+  ELAM driver (loads early at boot)
+        │  2. Declares which signing certs are "trusted antimalware"
+        ▼
+  CreateProcess( ... , PROTECTION_LEVEL_ANTIMALWARE )
+        │
+        ▼
+  ┌─────────────── KERNEL at process creation ───────────────┐
+  │  • verify signature + EKU  ──► valid?                     │
+  │        NO  ──► launch as normal (Protection 0)            │
+  │        YES ──► set EPROCESS.PS_PROTECTION = {PPL, Anti-   │
+  │                malware}                                   │
+  └──────────────────────────────────────────────────────────┘
+        │
+        ▼
+  Process now runs as PPL — self-protected, unkillable from Ring 3
+```
+
+**Why you can't do this for an arbitrary app:** step 1 requires a **Microsoft-issued cert** you can't get
+for a normal program. No cert → kernel ignores the request → process launches at Protection 0. The only
+lab workaround is `testsigning on` + a self-signed cert + a kernel driver — strictly a test-machine
+exercise, with an on-screen watermark, and not valid on normal machines.
+
+---
+
+## 7. Practical options for the CPU problem
+
+Killing `MsMpEng.exe` is impossible by design. Realistic paths instead:
+
+1. **Remove the PUAs (recommended)** — they are the likely cause and are Protection-0 (fully removable):
+   ```powershell
+   Remove-MpThreat
+   ```
+2. **Run a quick scan to completion** so Defender stops re-triggering:
+   ```powershell
+   Start-MpScan -ScanType QuickScan
+   ```
+3. **Temporarily pause Real-Time Protection** (leaves you unprotected; blocked if Tamper Protection is on;
+   auto-re-enables on reboot):
+   ```powershell
+   Set-MpPreference -DisableRealtimeMonitoring $true
+   ```
+4. **Lower MsMpEng priority** — won't free CPU but stops it starving other apps.
+
+> Note: Windows Defender does **not** expose a live "% complete" for scans via any command/API.
+> That percentage only appears in the **Windows Security** app while a manual scan is running.
