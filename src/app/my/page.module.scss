@@ -1,37 +1,134 @@
+.heroHeading {
+  background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.7) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.03em;
+}
+
 .cardGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  width: 100%;
   gap: 24px;
+  width: 100%;
 }
 
 .cardLink {
   text-decoration: none;
-  height: 100%;
   display: flex;
+  height: 100%;
+  width: 100%;
+}
+
+.tiltWrapper {
+  height: 100%;
+  width: 100%;
 }
 
 .card {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  position: relative;
+  background: var(--neutral-background-medium);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: var(--border-radius-l);
+  overflow: hidden;
+  transition:
+    box-shadow 0.3s ease,
+    border-color 0.3s ease;
   height: 100%;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border: 2px solid transparent;
+
+  &::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 20%;
+    bottom: 20%;
+    width: 2px;
+    border-radius: 0 2px 2px 0;
+    background: linear-gradient(to bottom, transparent, var(--card-accent), transparent);
+    transition: all 0.3s ease;
+  }
 
   &:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+
+    &::before {
+      top: 10%;
+      bottom: 10%;
+    }
+
+    .ctaIcon {
+      transform: translateX(4px);
+    }
+
+    .iconEmoji {
+      transform: translateY(-6px) scale(1.08);
+    }
   }
 }
 
-.cardIcon {
-  font-size: 3rem;
-  line-height: 1;
+.glowBlue {
+  --card-accent: #5a93fc;
 }
 
-.cardButton {
+.glowAmber {
+  --card-accent: #f59e0b;
+}
+
+.glowTeal {
+  --card-accent: #10b981;
+}
+
+.iconZone {
+  position: relative;
+  height: 160px;
   width: 100%;
-  margin-top: 8px;
+  overflow: hidden;
+}
+
+.iconZone_glowBlue {
+  background:
+    radial-gradient(ellipse 60% 80% at 50% 100%, rgba(59, 130, 246, 0.2), transparent 70%),
+    var(--neutral-background-strong);
+}
+
+.iconZone_glowAmber {
+  background:
+    radial-gradient(ellipse 60% 80% at 50% 100%, rgba(245, 158, 11, 0.18), transparent 70%),
+    var(--neutral-background-strong);
+}
+
+.iconZone_glowTeal {
+  background:
+    radial-gradient(ellipse 60% 80% at 50% 100%, rgba(16, 185, 129, 0.18), transparent 70%),
+    var(--neutral-background-strong);
+}
+
+.iconEmoji {
+  font-size: 4rem;
+  line-height: 1;
+  filter: drop-shadow(0 0 16px rgba(255, 255, 255, 0.15));
+  position: relative;
+  z-index: 1;
+  transition: transform 0.3s ease;
+}
+
+.cardBody {
+  flex: 1;
+}
+
+.cardCta {
+  margin-top: auto;
+}
+
+.ctaText {
+  background: linear-gradient(135deg, #5a93fc 0%, #8b5cf6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.ctaIcon {
+  transition: transform 0.2s ease;
+  color: #5a93fc;
 }

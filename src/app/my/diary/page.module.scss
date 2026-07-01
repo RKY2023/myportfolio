@@ -1,3 +1,37 @@
+.viewToggle {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9999px;
+  padding: 4px;
+  display: inline-flex;
+  gap: 4px;
+}
+
+.toggleBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 20px;
+  border-radius: 9999px;
+  border: none;
+  background: transparent;
+  color: var(--neutral-on-background-weak);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.875rem;
+  font-weight: 500;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.07);
+  }
+}
+
+.toggleBtnActive {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(139, 92, 246, 0.25));
+  border: 1px solid rgba(91, 147, 252, 0.3);
+  color: var(--neutral-on-background-strong);
+}
+
 .entriesContainer {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
@@ -6,12 +40,29 @@
 }
 
 .entryCard {
+  position: relative;
+  overflow: hidden;
   transition: all 0.3s ease;
-  border: 1px solid var(--neutral-alpha-medium);
+
+  &::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      var(--mood-color, var(--brand-background-strong)) 30%,
+      var(--mood-color, var(--brand-background-strong)) 70%,
+      transparent
+    );
+  }
 
   &:hover {
     transform: translateY(-4px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25);
   }
 }
 
@@ -24,15 +75,21 @@
   border-radius: 50%;
   font-size: 1.25rem;
   flex-shrink: 0;
+  transition: transform 0.2s;
+
+  .entryCard:hover & {
+    transform: scale(1.1);
+  }
 }
 
 .tag {
   display: inline-block;
-  padding: 6px 12px;
-  background: var(--brand-background-weak);
-  color: var(--brand-on-background-weak);
-  border-radius: 16px;
-  font-size: 0.875rem;
+  padding: 4px 10px;
+  background: rgba(91, 147, 252, 0.1);
+  color: #5a93fc;
+  border: 1px solid rgba(91, 147, 252, 0.2);
+  border-radius: 9999px;
+  font-size: 0.8125rem;
   font-weight: 500;
 }
 

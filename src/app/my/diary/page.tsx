@@ -10,6 +10,7 @@ import {
   Spinner,
   Button,
   Input,
+  RevealFx,
 } from "@/once-ui/components";
 import { useGetDiaryEntriesQuery, useCreateDiaryEntryMutation, DiaryEntry } from "@/store/api/diaryApi";
 import DiaryEditor from "../components/DiaryEditor";
@@ -161,30 +162,30 @@ export default function Diary() {
 
   return (
     <Column fillWidth gap="24">
-      <Flex direction="column" gap="8">
-        <Heading variant="heading-strong-l">Diary Entries</Heading>
-        <Text variant="body-default-m" color="secondary">
-          Your personal journal entries, thoughts, and reflections.
-        </Text>
-      </Flex>
+      <RevealFx speed="fast" delay={0} translateY="8">
+        <Flex direction="column" gap="8">
+          <Heading variant="heading-strong-l">Diary Entries</Heading>
+          <Text variant="body-default-m" color="secondary">
+            Your personal journal entries, thoughts, and reflections.
+          </Text>
+        </Flex>
+      </RevealFx>
 
       {/* View Mode Toggle */}
-      <Flex gap="8">
-        <Button
-          variant={viewMode === "calendar" ? "primary" : "secondary"}
-          size="s"
+      <div className={styles.viewToggle}>
+        <button
+          className={`${styles.toggleBtn} ${viewMode === "calendar" ? styles.toggleBtnActive : ""}`}
           onClick={() => setViewMode("calendar")}
         >
           📅 Calendar View
-        </Button>
-        <Button
-          variant={viewMode === "list" ? "primary" : "secondary"}
-          size="s"
+        </button>
+        <button
+          className={`${styles.toggleBtn} ${viewMode === "list" ? styles.toggleBtnActive : ""}`}
           onClick={() => setViewMode("list")}
         >
           📝 List View
-        </Button>
-      </Flex>
+        </button>
+      </div>
 
       {/* Calendar View */}
       {viewMode === "calendar" && (
@@ -266,6 +267,7 @@ export default function Diary() {
             gap="12"
             background="surface"
             className={styles.entryCard}
+            style={{ "--mood-color": getMoodColor(entry.mood) } as React.CSSProperties}
           >
             {/* Entry Header */}
             <Flex gap="12" align="start" horizontal="space-between">
@@ -283,7 +285,10 @@ export default function Diary() {
               {entry.mood && (
                 <div
                   className={styles.moodBadge}
-                  style={{ backgroundColor: getMoodColor(entry.mood) }}
+                  style={{
+                    backgroundColor: getMoodColor(entry.mood),
+                    boxShadow: `0 0 0 3px ${getMoodColor(entry.mood)}33`,
+                  }}
                   title={entry.mood}
                 >
                   {getMoodEmoji(entry.mood)}

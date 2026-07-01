@@ -2,21 +2,21 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Flex, Column, Text, Button } from "@/once-ui/components";
+import { Flex, Column, Text, Icon, LetterFx } from "@/once-ui/components";
 import styles from "./layout.module.scss";
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
+const navigationItems = [
+  { href: "/my", label: "Home", icon: "home", exact: true },
+  { href: "/my/calendar", label: "Calendar", icon: "calendar" },
+  { href: "/my/diary", label: "Diary", icon: "book" },
+];
+
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const pathname = usePathname() || "";
-
-  const navigationItems = [
-    { href: "/my", label: "Home", exact: true },
-    { href: "/my/calendar", label: "Calendar" },
-    { href: "/my/diary", label: "Diary" },
-  ];
 
   return (
     <Column fillHeight gap="0">
@@ -25,55 +25,36 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         as="nav"
         fillWidth
         padding="16"
-        background="surface"
-        borderBottom="neutral-weak"
-        gap="24"
-        align="center"
+        horizontal="space-between"
+        vertical="center"
+        className={styles.glassNav}
       >
-        <Text variant="heading-strong-m">
-          My Secret Space
+        <Text variant="heading-strong-m" className={styles.navTitle}>
+          <LetterFx trigger="hover" speed="fast">My Secret Space</LetterFx>
         </Text>
-        <Flex gap="8" align="center">
+        <Flex gap="4" className={styles.navPill}>
           {navigationItems.map((item) => {
             const isActive = item.exact
               ? pathname === item.href
-              : pathname.startsWith(item.href) && item.href !== "/my";
+              : pathname.startsWith(item.href);
 
             return (
-              <Link key={item.href} href={item.href}>
-                <Button
-                  variant={isActive ? "primary" : "secondary"}
-                  size="s"
-                  className={styles.navButton}
+              <Link key={item.href} href={item.href} className={styles.navLink}>
+                <Flex
+                  gap="8"
+                  vertical="center"
+                  paddingX="16"
+                  paddingY="8"
+                  className={`${styles.navItem} ${isActive ? styles.navItemActive : ""}`}
                 >
-                  {item.label}
-                </Button>
+                  <Icon name={item.icon} size="s" />
+                  <Text variant="label-strong-s">{item.label}</Text>
+                </Flex>
               </Link>
             );
           })}
         </Flex>
       </Flex>
-
-      {/* Breadcrumb */}
-      {pathname !== "/my" && (
-        <Flex
-          fillWidth
-          paddingY="12"
-          paddingX="16"
-          background="neutral-weak"
-          gap="8"
-        >
-          <Link href="/my">
-            <Text variant="body-default-m" className={styles.breadcrumb}>
-              Home
-            </Text>
-          </Link>
-          <Text variant="body-default-m">/</Text>
-          <Text variant="body-strong-m">
-            {pathname === "/my/calendar" ? "Calendar" : "Diary"}
-          </Text>
-        </Flex>
-      )}
 
       {/* Main Content */}
       <Flex fillWidth fillHeight padding="24" overflow="auto">

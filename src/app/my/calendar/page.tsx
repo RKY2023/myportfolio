@@ -8,7 +8,7 @@ import {
   Text,
   Card,
   Spinner,
-  Button,
+  RevealFx,
 } from "@/once-ui/components";
 import { useGetTimelineEventsQuery, useCreateTimelineEventMutation } from "@/store/api/timelineApi";
 import EventEditor from "../components/EventEditor";
@@ -79,13 +79,14 @@ export default function Calendar() {
 
   return (
     <Column fillWidth gap="24">
-      <Flex direction="column" gap="8">
-        <Heading variant="heading-strong-m">Timeline Events</Heading>
-        <Text variant="body-default-m" color="secondary">
-          Your personal calendar and timeline of events, projects, and
-          milestones.
-        </Text>
-      </Flex>
+      <RevealFx speed="fast" delay={0} translateY="8">
+        <Flex direction="column" gap="8">
+          <Heading variant="heading-strong-m">Timeline Events</Heading>
+          <Text variant="body-default-m" color="secondary">
+            Your personal calendar and timeline of events, projects, and milestones.
+          </Text>
+        </Flex>
+      </RevealFx>
 
       {errorMessage && (
         <Card padding="16" background="accent-weak">
@@ -113,10 +114,11 @@ export default function Calendar() {
             gap="12"
             background="surface"
             className={styles.eventCard}
+            style={{ "--status-color": getStatusColor(event.status) } as React.CSSProperties}
           >
             {/* Event Header */}
             <Flex gap="12" align="start">
-              <div className={styles.eventIcon}>
+              <div className={styles.eventIconPill}>
                 {getEventTypeIcon(event.eventType)}
               </div>
               <Flex direction="column" gap="4" fillWidth>
@@ -128,7 +130,9 @@ export default function Calendar() {
                   <span
                     className={styles.statusBadge}
                     style={{
-                      backgroundColor: getStatusColor(event.status),
+                      color: getStatusColor(event.status),
+                      borderColor: `${getStatusColor(event.status)}44`,
+                      backgroundColor: `${getStatusColor(event.status)}1a`,
                     }}
                   >
                     {event.status}
@@ -196,8 +200,8 @@ const getStatusColor = (status: string): string => {
   const colors: Record<string, string> = {
     planned: "#3B82F6",
     ongoing: "#10B981",
-    completed: "#8B5CF6",
-    cancelled: "#6B7280",
+    completed: "#6366F1",
+    cancelled: "#9CA3AF",
   };
   return colors[status] || "#9CA3AF";
 };
