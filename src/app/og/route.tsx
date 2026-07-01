@@ -1,16 +1,17 @@
+import { readFileSync } from "node:fs";
 import { ImageResponse } from "next/og";
 import { baseURL } from "@/app/resources";
 import { person } from "@/app/resources/content";
 
-export const runtime = "edge";
+// Node.js runtime avoids the 1 MB Edge Function size limit that the bundled
+// font + next/og renderer exceeds. Node fetch can't read file: URLs, so the
+// font is loaded from disk via fs instead of fetch.
+export const runtime = "nodejs";
 
 export async function GET(request: Request) {
   let url = new URL(request.url);
   let title = url.searchParams.get("title") || "Portfolio";
-  const font = fetch(new URL("../../../public/fonts/Inter.ttf", import.meta.url)).then((res) =>
-    res.arrayBuffer(),
-  );
-  const fontData = await font;
+  const fontData = readFileSync(new URL("../../../public/fonts/Inter.ttf", import.meta.url));
 
   return new ImageResponse(
     <div
